@@ -1,0 +1,50 @@
+import type { Puzzle } from "./types";
+
+/** Local calendar date as YYYY-MM-DD. */
+export function formatLocalDate(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Pick the puzzle whose `date` matches today in the player's local timezone.
+ * If none match, fall back to the most recent past puzzle.
+ */
+export function getDailyPuzzle(
+  puzzles: Puzzle[],
+  today: Date = new Date(),
+): Puzzle {
+  if (puzzles.length === 0) {
+    throw new Error("No puzzles available");
+  }
+
+  const todayKey = formatLocalDate(today);
+  const exact = puzzles.find((p) => p.date === todayKey);
+  if (exact) return exact;
+
+  const past = puzzles
+    .filter((p) => p.date <= todayKey)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  if (past[0]) return past[0];
+
+  // All puzzles are in the future — use the earliest one
+  return [...puzzles].sort((a, b) => a.date.localeCompare(b.date))[0]!;
+}
+
+/** Milliseconds until next local midnight. */
+export function msUntilNextLocalMidnight(now: Date = new Date()): number {
+  const next = new Date(now);
+  next.setHours(24, 0, 0, 0);
+  return Math.max(0, next.getTime() - now.getTime());
+}
+
+export function formatCountdown(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1,
+    "date": "2026-11-20",
+    "author": "COMMS",
+    "notes": "Red herring: Omen is also a controller.",
+    "groups": [
+      {
+        "category": "MAPS",
+        "difficulty": 1,
+        "words": ["Ascent", "Bind", "Lotus", "Pearl"]
+      },
+      {
+        "category": "CHAMPIONS WINNERS (2021–2024)",
+        "difficulty": 2,
+        "words": ["Acend", "LOUD", "Evil Geniuses", "EDward Gaming"]
+      },
+      {
+        "category": "CONTROLLERS",
+        "difficulty": 3,
+        "words": ["Brimstone", "Viper", "Astra", "Harbor"]
+      },
+      {
+        "category": "ADD A LETTER IN FRONT TO MAKE A WORD",
+        "difficulty": 4,
+        "words": ["Omen", "Raze", "Sage", "Iso"]
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "date": "2026-11-21",
+    "author": "COMMS",
+    "notes": "Red herrings: Sentinels team vs Sentinel role; Raze is a Duelist.",
+    "groups": [
+      {
+        "category": "DUELISTS",
+        "difficulty": 1,
+        "words": ["Jett", "Reyna", "Phoenix", "Neon"]
+      },
+      {
+        "category": "MASTERS WINNERS (2021–2023)",
+        "difficulty": 2,
+        "words": ["Sentinels", "Gambit", "OpTic", "Fnatic"]
+      },
+      {
+        "category": "SENTINEL AGENTS",
+        "difficulty": 3,
+        "words": ["Killjoy", "Cypher", "Chamber", "Deadlock"]
+      },
+      {
+        "category": "WORDS FOR BREAKING SOMETHING",
+        "difficulty": 4,
+        "words": ["Split", "Fracture", "Breach", "Raze"]
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "date": "2026-11-22",
+    "author": "COMMS",
+    "notes": "Red herring: FunPlus Phoenix also matches the agent name.",
+    "groups": [
+      {
+        "category": "AMERICAS TEAMS",
+        "difficulty": 1,
+        "words": ["Sentinels", "Cloud9", "100 Thieves", "LOUD"]
+      },
+      {
+        "category": "EMEA TEAMS",
+        "difficulty": 2,
+        "words": ["Fnatic", "Team Liquid", "Team Heretics", "Karmine Corp"]
+      },
+      {
+        "category": "PACIFIC TEAMS",
+        "difficulty": 3,
+        "words": ["Paper Rex", "DRX", "Gen.G", "T1"]
+      },
+      {
+        "category": "CHINA TEAMS",
+        "difficulty": 4,
+        "words": ["EDward Gaming", "Bilibili Gaming", "FunPlus Phoenix", "Trace Esports"]
+      }
+    ]
+  }
+]
