@@ -15,10 +15,29 @@ function GoogleMark() {
   );
 }
 
+function openGooglePopup(): Window | null {
+  const width = 500;
+  const height = 700;
+  const left = Math.round(window.screenX + (window.outerWidth - width) / 2);
+  const top = Math.round(window.screenY + (window.outerHeight - height) / 2);
+  const popup = window.open(
+    "about:blank",
+    "",
+    `width=${width},height=${height},left=${left},top=${top}`,
+  );
+  if (popup) {
+    popup.document.write(
+      `<!doctype html><title>Google sign-in</title><body style="margin:0;background:#0f1923;color:#ece8e1;font:14px system-ui;display:grid;place-items:center;height:100vh">Connecting to Google…</body>`,
+    );
+    popup.document.close();
+  }
+  return popup;
+}
+
 function GoogleSignIn() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const { isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const { signIn, errors, fetchStatus } = useSignIn();
   const [localError, setLocalError] = useState<string | null>(null);
   const nextPath = getSafeInternalPath(params.get("redirect"));
@@ -28,22 +47,46 @@ function GoogleSignIn() {
   }
 
   async function handleGoogle() {
+    if (!isLoaded || !signIn) {
+      setLocalError("Sign-in is still loading. Try again in a moment.");
+      return;
+    }
     setLocalError(null);
+    const popup = openGooglePopup();
     try {
-      const origin = window.location.origin;
       const { error } = await signIn.sso({
         strategy: "oauth_google",
-        redirectUrl: origin + nextPath,
-        redirectCallbackUrl: origin + "/sso-callback",
+        redirectUrl: nextPath,
+        redirectCallbackUrl: "/sso-callback",
+        popup: popup ?? undefined,
       });
-      if (error) setLocalError(error.message);
+      if (error) {
+        popup?.close();
+        setLocalError(error.message);
+        return;
+      }
+      if (signIn.status === "complete") {
+        await signIn.finalize({
+          navigate: ({ decorateUrl }) => {
+            const destination = decorateUrl(nextPath);
+            if (destination.startsWith("http")) {
+              window.location.assign(destination);
+              return;
+            }
+            void navigate(destination, { replace: true });
+          },
+        });
+      }
     } catch (error) {
-      setLocalError(error instanceof Error ? error.message : "Google sign-in failed");
+      popup?.close();
+      setLocalError(
+        error instanceof Error ? error.message : "Google sign-in failed",
+      );
     }
   }
 
   const clerkError = errors.global?.[0]?.message;
-  const busy = fetchStatus === "fetching";
+  const busy = !isLoaded || fetchStatus === "fetching";
 
   return (
     <div className="mx-auto max-w-[390px] text-center">

@@ -222,7 +222,7 @@ export function clearCreateDraft(): void {
 }
 
 export function customShareTitle(puzzle: Puzzle): string {
-  return puzzle.author ? `COMMS by ${puzzle.author}` : "COMMS Custom";
+  return puzzle.author ? `VCT COMMS by ${puzzle.author}` : "VCT COMMS Custom";
 }
 
 function hashToId(value: string): number {

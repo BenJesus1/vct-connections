@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { RequireAccount } from "../components/AccountGate";
+import { RequireAccount, RequireEditor } from "../components/AccountGate";
+import { PuzzleGroupFields } from "../components/PuzzleGroupFields";
 import { copyShareText } from "../game/share";
 import {
   decodeCustomPuzzle,
@@ -12,13 +13,10 @@ import {
   saveCreateDraft,
   clearCreateDraft,
   MAX_AUTHOR_LENGTH,
-  MAX_CATEGORY_LENGTH,
-  MAX_WORD_LENGTH,
   puzzleToDraft,
   validateCustomDraft,
   type CustomPuzzleDraft,
 } from "../game/customPuzzle";
-import { DIFFICULTY } from "../theme";
 
 function AuthorAutofill({
   onName,
@@ -53,7 +51,12 @@ export function CreatePage() {
       title="Create"
       signedOutBody="Sign in with Google to make a custom COMMS and share a play link."
     >
-      <CreateForm />
+      <RequireEditor
+        title="Create"
+        body="Puzzle creation is limited to official COMMS editors."
+      >
+        <CreateForm />
+      </RequireEditor>
     </RequireAccount>
   );
 }
@@ -137,7 +140,7 @@ function CreateForm() {
           Create
         </p>
         <h1 className="font-display text-4xl tracking-wide text-comms-text">
-          Make a COMMS
+          Make a VCT COMMS
         </h1>
         <p className="mt-2 font-body text-sm text-comms-muted">
           Fill four groups, then play it or send a link. The puzzle lives in
@@ -166,50 +169,11 @@ function CreateForm() {
         />
       </label>
 
-      <div className="flex flex-col gap-4">
-        {draft.groups.map((group, groupIndex) => {
-          const tier = DIFFICULTY[(groupIndex + 1) as 1 | 2 | 3 | 4];
-          return (
-            <section
-              key={tier.name}
-              className="rounded-sm bg-comms-tile p-3"
-              style={{ boxShadow: `inset 4px 0 0 ${tier.color}` }}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="font-body text-[11px] font-semibold uppercase tracking-wide text-comms-muted">
-                  {tier.name}
-                </p>
-                <span
-                  className="h-2 w-8 rounded-sm"
-                  style={{ backgroundColor: tier.color }}
-                  aria-hidden="true"
-                />
-              </div>
-              <input
-                value={group.category}
-                maxLength={MAX_CATEGORY_LENGTH}
-                onChange={(e) => updateCategory(groupIndex, e.target.value)}
-                placeholder="Category"
-                className="mb-2 w-full rounded-sm border border-comms-text/10 bg-comms-bg px-3 py-2 font-display text-sm uppercase tracking-wide text-comms-text outline-none placeholder:text-comms-muted/50 focus:border-comms-accent"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                {group.words.map((word, wordIndex) => (
-                  <input
-                    key={wordIndex}
-                    value={word}
-                    maxLength={MAX_WORD_LENGTH}
-                    onChange={(e) =>
-                      updateWord(groupIndex, wordIndex, e.target.value)
-                    }
-                    placeholder={`Word ${wordIndex + 1}`}
-                    className="rounded-sm border border-comms-text/10 bg-comms-bg px-2 py-2 text-center font-body text-xs font-semibold uppercase tracking-wide text-comms-text outline-none placeholder:text-comms-muted/50 focus:border-comms-accent"
-                  />
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+      <PuzzleGroupFields
+        groups={draft.groups}
+        onCategory={updateCategory}
+        onWord={updateWord}
+      />
 
       {errors.length > 0 ? (
         <ul className="mt-4 space-y-1 rounded-sm bg-comms-accent/15 px-3 py-3 font-body text-xs text-comms-text">

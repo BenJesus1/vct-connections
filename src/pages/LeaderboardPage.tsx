@@ -1,10 +1,16 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth, useSession } from "@clerk/react";
 import { AccountGate, RequireAccount } from "../components/AccountGate";
+import { canOpenEditorUi } from "../auth/editor";
+import { RankLabel } from "../components/RankLabel";
+import { commsRankFromAverage } from "../game/ranks";
 import {
   fetchLeaderboard,
-  rankByAverage,
+  MIN_RANK_BOARD_PLAYS,
+  rankByCommsRank,
   rankByStreak,
+  removePlayerResults,
+  subscribeProfileSync,
   type LeaderboardRow,
 } from "../lib/leaderboard";
 import { createClerkSupabaseClient, isSupabaseConfigured } from "../lib/supabase";
@@ -15,7 +21,7 @@ export function LeaderboardPage() {
   return (
     <RequireAccount
       title="Ranks"
-      signedOutBody="Sign in with Google to see who has the longest streaks and lowest daily averages."
+      signedOutBody="Sign in with Google to see who has the longest streaks and the highest average ranks."
       unconfiguredBody="Turn on Clerk sign-in to open the account leaderboard."
     >
       <SignedInLeaderboard />
@@ -42,15 +48,22 @@ function SignedInLeaderboard() {
     }
 
     let active = true;
-    setLoading(true);
-    void fetchLeaderboard(client).then((result) => {
-      if (!active) return;
-      setRows(result.rows);
-      setError(result.error);
-      setLoading(false);
-    });
+    const supabase = client;
+    function load(showSpinner: boolean) {
+      if (showSpinner) setLoading(true);
+      void fetchLeaderboard(supabase).then((result) => {
+        if (!active) return;
+        setRows(result.rows);
+        setError(result.error);
+        setLoading(false);
+      });
+    }
+
+    load(true);
+    const unsubscribe = subscribeProfileSync(() => load(false));
     return () => {
       active = false;
+      unsubscribe();
     };
   }, [client, isSignedIn]);
 
@@ -64,19 +77,30 @@ function SignedInLeaderboard() {
   }
 
   const streakRows = rankByStreak(rows).slice(0, TOP_N);
-  const averageRows = rankByAverage(rows).slice(0, TOP_N);
+  const rankRows = rankByCommsRank(rows, {
+    minPlays: MIN_RANK_BOARD_PLAYS,
+  }).slice(0, TOP_N);
+  const canModerate = canOpenEditorUi(userId);
+
+  async function removePlayer(targetId: string) {
+    if (!client) return;
+    const message = await removePlayerResults(client, targetId);
+    if (message) {
+      setError(message);
+      return;
+    }
+    setRows((current) => current.filter((row) => row.user_id !== targetId));
+  }
 
   return (
     <div className="mx-auto max-w-[390px]">
       <header className="mb-6 text-center">
-        <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
-          Account
-        </p>
         <h1 className="font-display text-4xl tracking-wide text-comms-text">
           Ranks
         </h1>
         <p className="mt-2 font-body text-sm text-comms-muted">
-          Official dailies only. Streaks and averages are stored in Supabase for signed-in players.
+          Official dailies only. Highest ranks is your average after{" "}
+          {MIN_RANK_BOARD_PLAYS} plays.
         </p>
       </header>
 
@@ -99,15 +123,25 @@ function SignedInLeaderboard() {
             hint="Best win streak, then current streak"
             rows={streakRows}
             userId={userId}
+            canModerate={canModerate}
+            onRemove={(id) => void removePlayer(id)}
             value={(row) => String(row.max_streak)}
             sub={(row) => "now " + row.current_streak}
           />
           <Board
-            title="Lowest averages"
-            hint="Average mistakes per official daily"
-            rows={averageRows}
+            title="Highest ranks"
+            hint={`Average rank across official dailies. Qualifies after ${MIN_RANK_BOARD_PLAYS} plays.`}
+            empty={`No one has ${MIN_RANK_BOARD_PLAYS} official dailies yet. Keep playing to appear here.`}
+            rows={rankRows}
             userId={userId}
-            value={(row) => row.daily_avg.toFixed(2)}
+            canModerate={canModerate}
+            onRemove={(id) => void removePlayer(id)}
+            value={(row) => (
+              <RankLabel
+                rank={commsRankFromAverage(Number(row.rank_avg))}
+                className="text-2xl"
+              />
+            )}
             sub={(row) => row.dailies_played + " played"}
           />
         </div>
@@ -119,27 +153,41 @@ function SignedInLeaderboard() {
 function Board({
   title,
   hint,
+  empty,
   rows,
   userId,
+  canModerate,
+  onRemove,
   value,
   sub,
 }: {
   title: string;
   hint: string;
+  empty?: string;
   rows: LeaderboardRow[];
   userId: string | null | undefined;
-  value: (row: LeaderboardRow) => string;
+  canModerate: boolean;
+  onRemove: (userId: string) => void;
+  value: (row: LeaderboardRow) => ReactNode;
   sub: (row: LeaderboardRow) => string;
 }) {
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
   return (
     <section>
       <h2 className="font-display text-2xl tracking-wide text-comms-text">
         {title}
       </h2>
       <p className="mb-3 font-body text-xs text-comms-muted">{hint}</p>
+      {rows.length === 0 && empty ? (
+        <p className="rounded-sm bg-comms-tile px-4 py-3 font-body text-sm text-comms-muted">
+          {empty}
+        </p>
+      ) : (
       <ol className="flex flex-col gap-2">
         {rows.map((row, index) => {
           const mine = row.user_id === userId;
+          const pending = pendingId === row.user_id;
           return (
             <li
               key={row.user_id}
@@ -159,14 +207,46 @@ function Board({
                   ) : null}
                 </p>
                 <p className="font-body text-[11px] text-comms-muted">{sub(row)}</p>
+                {canModerate ? (
+                  pending ? (
+                    <div className="mt-1 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingId(null);
+                          onRemove(row.user_id);
+                        }}
+                        className="font-body text-[10px] font-semibold uppercase tracking-wide text-comms-accent hover:underline"
+                      >
+                        Confirm remove
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPendingId(null)}
+                        className="font-body text-[10px] font-semibold uppercase tracking-wide text-comms-muted hover:text-comms-text"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setPendingId(row.user_id)}
+                      className="mt-1 font-body text-[10px] font-semibold uppercase tracking-wide text-comms-muted hover:text-comms-accent"
+                    >
+                      Remove
+                    </button>
+                  )
+                ) : null}
               </div>
-              <p className="font-display text-2xl tracking-wide text-comms-text tabular-nums">
+              <div className="shrink-0 text-right font-display text-2xl tracking-wide text-comms-text tabular-nums">
                 {value(row)}
-              </p>
+              </div>
             </li>
           );
         })}
       </ol>
+      )}
     </section>
   );
 }

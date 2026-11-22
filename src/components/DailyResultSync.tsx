@@ -1,12 +1,7 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
 import { useSession, useUser } from "@clerk/react";
-import { puzzles } from "../data/puzzles";
-import {
-  displayNameFromUser,
-  isOfficialDaily,
-  submitDailyResult,
-  upsertProfile,
-} from "../lib/leaderboard";
+import { usePuzzleCatalog } from "./PuzzleCatalog";
+import { isOfficialDaily, submitDailyResult } from "../lib/leaderboard";
 import { createClerkSupabaseClient, isSupabaseConfigured } from "../lib/supabase";
 import { loadSavedState } from "../game/storage";
 import type { GameState, Puzzle } from "../game/types";
@@ -17,6 +12,7 @@ interface DailyResultSyncProps {
 }
 
 export function DailyResultSync({ puzzle, state }: DailyResultSyncProps) {
+  const { puzzles, loading } = usePuzzleCatalog();
   const { session } = useSession();
   const { user } = useUser();
   const syncedLocal = useRef(false);
@@ -27,20 +23,7 @@ export function DailyResultSync({ puzzle, state }: DailyResultSyncProps) {
   }, [session]);
 
   useEffect(() => {
-    if (!client || !user) return;
-    void upsertProfile(
-      client,
-      user.id,
-      displayNameFromUser({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-      }),
-    );
-  }, [client, user]);
-
-  useEffect(() => {
-    if (!client || !user || syncedLocal.current) return;
+    if (!client || !user || syncedLocal.current || loading) return;
     syncedLocal.current = true;
     const saved = loadSavedState();
     void Promise.all(
@@ -51,7 +34,7 @@ export function DailyResultSync({ puzzle, state }: DailyResultSyncProps) {
         return submitDailyResult(client, localPuzzle, progress);
       }),
     );
-  }, [client, user]);
+  }, [client, loading, puzzles, user]);
 
   useEffect(() => {
     if (!client) return;

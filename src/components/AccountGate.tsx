@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@clerk/react";
 import { isClerkConfigured } from "../auth/clerk";
+import { canOpenEditorUi } from "../auth/editor";
 
 export function AccountGate({
   title,
@@ -14,10 +15,7 @@ export function AccountGate({
 }) {
   return (
     <div className="mx-auto max-w-[390px] text-center">
-      <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
-        Account
-      </p>
-      <h1 className="mt-1 font-display text-4xl tracking-wide text-comms-text">
+      <h1 className="font-display text-4xl tracking-wide text-comms-text">
         {title}
       </h1>
       <p className="mt-2 font-body text-sm text-comms-muted">{body}</p>
@@ -92,6 +90,56 @@ function RequireSignedIn({
         }
       />
     );
+  }
+
+  return children;
+}
+
+export function RequireEditor({
+  title,
+  body,
+  action,
+  children,
+}: {
+  title: string;
+  body: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  if (!isClerkConfigured()) {
+    return <AccountGate title={title} body={body} action={action} />;
+  }
+
+  return (
+    <RequireEditorInner title={title} body={body} action={action}>
+      {children}
+    </RequireEditorInner>
+  );
+}
+
+function RequireEditorInner({
+  title,
+  body,
+  action,
+  children,
+}: {
+  title: string;
+  body: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  const { isLoaded, userId } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <p className="mx-auto max-w-[390px] text-center font-body text-sm text-comms-muted">
+        Loading…
+      </p>
+    );
+  }
+
+  if (!canOpenEditorUi(userId)) {
+    return <AccountGate title={title} body={body} action={action} />;
   }
 
   return children;

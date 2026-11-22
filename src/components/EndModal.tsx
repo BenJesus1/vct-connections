@@ -3,9 +3,22 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   formatCountdown,
+  formatDisplayDate,
   msUntilNextLocalMidnight,
 } from "../game/daily";
+import {
+  commsRankFromProgress,
+  emptyRankDistribution,
+  isRadiantSolve,
+} from "../game/ranks";
 import { buildShareText, copyShareText } from "../game/share";
+import {
+  COMMS_PUBLIC_RANK_ORDER,
+  COMMS_RANK,
+  COMMS_RANK_ORDER,
+  type CommsRank,
+} from "../theme";
+import { RankLabel } from "./RankLabel";
 import type { GameState, SavedState } from "../game/types";
 
 interface EndModalProps {
@@ -16,6 +29,7 @@ interface EndModalProps {
   puzzleLink?: string;
   showCareerStats?: boolean;
   onClose: () => void;
+  onPlayAgain?: () => void;
 }
 
 export function EndModal({
@@ -26,6 +40,7 @@ export function EndModal({
   puzzleLink,
   showCareerStats = true,
   onClose,
+  onPlayAgain,
 }: EndModalProps) {
   const reducedMotion = useReducedMotion();
   const [countdown, setCountdown] = useState(() =>
@@ -77,9 +92,16 @@ export function EndModal({
     }
   }
 
-  const title = state.status === "won" ? "COMMS SECURE" : "SIGNAL LOST";
-  const subtitle =
-    state.status === "won"
+  const title = state.status === "won" ? "VCT COMMS COMPLETED" : "SIGNAL LOST";
+  const earnedRank =
+    state.status === "won" || state.status === "lost"
+      ? commsRankFromProgress(state.puzzle, state)
+      : null;
+  const radiantClear =
+    state.status === "won" && isRadiantSolve(state.puzzle, state.solved);
+  const subtitle = radiantClear
+    ? "Radiant, Immortal, Gold, then Iron"
+    : state.status === "won"
       ? `Cleared with ${state.mistakes} mistake${state.mistakes === 1 ? "" : "s"}`
       : showCareerStats
         ? "Out of mistakes — better luck tomorrow"
@@ -110,7 +132,7 @@ export function EndModal({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
-                  {shareTitle ?? `Puzzle #${state.puzzle.id}`}
+                  {shareTitle ?? formatDisplayDate(state.puzzle.date)}
                 </p>
                 <h2
                   id="end-modal-title"
@@ -118,6 +140,11 @@ export function EndModal({
                 >
                   {title}
                 </h2>
+                {earnedRank ? (
+                  <p className="mt-1">
+                    <RankLabel rank={earnedRank} className="text-xl" />
+                  </p>
+                ) : null}
                 <p className="mt-1 font-body text-sm text-comms-muted">{subtitle}</p>
               </div>
               <button
@@ -141,14 +168,15 @@ export function EndModal({
 
                 <div className="mt-5">
                   <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-comms-muted">
-                    Mistake distribution
+                    Rank distribution
                   </p>
-                  <MistakeBars
-                    distribution={stats.mistakeDistribution}
-                    highlight={
-                      state.status === "won"
-                        ? Math.min(3, state.mistakes)
-                        : 4
+                  <RankBars
+                    distribution={stats.rankDistribution ?? emptyRankDistribution()}
+                    highlight={earnedRank}
+                    showRadiant={
+                      earnedRank === "Radiant" ||
+                      (stats.rankDistribution?.[COMMS_RANK_ORDER.indexOf("Radiant")] ??
+                        0) > 0
                     }
                   />
                 </div>
@@ -174,6 +202,16 @@ export function EndModal({
                 className="clip-angled mt-2.5 w-full border border-comms-text/70 bg-transparent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:bg-comms-tile"
               >
                 {copiedLink ? "Link copied!" : "Copy puzzle link"}
+              </button>
+            ) : null}
+
+            {onPlayAgain ? (
+              <button
+                type="button"
+                onClick={onPlayAgain}
+                className="clip-angled mt-2.5 w-full border border-comms-text/70 bg-transparent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:bg-comms-tile"
+              >
+                Play again
               </button>
             ) : null}
 
@@ -214,37 +252,47 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MistakeBars({
+function RankBars({
   distribution,
   highlight,
+  showRadiant,
 }: {
-  distribution: [number, number, number, number, number];
-  highlight: number;
+  distribution: [number, number, number, number, number, number];
+  highlight: CommsRank | null;
+  showRadiant: boolean;
 }) {
-  const labels = ["0", "1", "2", "3", "X"];
-  const max = Math.max(1, ...distribution);
+  const ranks = showRadiant ? COMMS_RANK_ORDER : COMMS_PUBLIC_RANK_ORDER;
+  const max = Math.max(
+    1,
+    ...ranks.map((rank) => distribution[COMMS_RANK_ORDER.indexOf(rank)] ?? 0),
+  );
 
   return (
-    <div className="flex h-24 items-end gap-1.5">
-      {distribution.map((count, i) => {
+    <div className="flex h-24 items-stretch gap-1">
+      {ranks.map((rank) => {
+        const count = distribution[COMMS_RANK_ORDER.indexOf(rank)] ?? 0;
         const height = Math.max(8, Math.round((count / max) * 100));
-        const active = i === highlight;
+        const active = rank === highlight;
+        const style = COMMS_RANK[rank];
         return (
-          <div key={labels[i]} className="flex flex-1 flex-col items-center gap-1">
+          <div key={rank} className="flex min-h-0 flex-1 flex-col items-center gap-1">
             <div
-              className="flex w-full flex-1 items-end"
-              title={`${count}`}
+              className="flex w-full min-h-0 flex-1 items-end"
+              title={`${style.name}: ${count}`}
             >
               <div
                 className={[
                   "w-full rounded-sm transition-colors",
-                  active ? "bg-comms-accent" : "bg-comms-tile",
+                  active ? "" : "bg-comms-tile",
                 ].join(" ")}
-                style={{ height: `${height}%` }}
+                style={{
+                  height: `${height}%`,
+                  backgroundColor: active ? style.color : undefined,
+                }}
               />
             </div>
-            <span className="font-body text-[10px] text-comms-muted">
-              {labels[i]}
+            <span className="font-body text-[9px] leading-tight text-comms-muted">
+              {style.name}
             </span>
           </div>
         );

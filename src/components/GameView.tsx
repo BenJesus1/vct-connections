@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useState } from "react";
+import { useAuth } from "@clerk/react";
 import { Board } from "./Board";
 import { Controls } from "./Controls";
 import { EndModal } from "./EndModal";
@@ -7,13 +8,16 @@ import { Toast } from "./Toast";
 import { createInitialState, gameReducer, restoreState } from "../game/reducer";
 import { canSubmit } from "../game/selectors";
 import {
+  clearPuzzleProgress,
   getPuzzleProgress,
   loadSavedState,
   saveGameProgress,
 } from "../game/storage";
+import { formatDisplayDate } from "../game/daily";
 import type { Puzzle, SavedState } from "../game/types";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 import { isClerkConfigured } from "../auth/clerk";
+import { canOpenEditorUi } from "../auth/editor";
 import { DailyResultSync } from "./DailyResultSync";
 import { isSupabaseConfigured } from "../lib/supabase";
 
@@ -44,7 +48,19 @@ function initialGameState(puzzle: Puzzle, persistProgress: boolean) {
   return createInitialState(puzzle);
 }
 
-export function GameView({
+export function GameView(props: GameViewProps) {
+  if (!isClerkConfigured()) {
+    return <GameViewCore {...props} canReplay={false} />;
+  }
+  return <GameViewWithAuth {...props} />;
+}
+
+function GameViewWithAuth(props: GameViewProps) {
+  const { userId } = useAuth();
+  return <GameViewCore {...props} canReplay={canOpenEditorUi(userId)} />;
+}
+
+function GameViewCore({
   puzzle,
   badge = "Daily",
   persistProgress = true,
@@ -52,7 +68,8 @@ export function GameView({
   hidePuzzleNumber = false,
   shareTitle,
   puzzleLink,
-}: GameViewProps) {
+  canReplay,
+}: GameViewProps & { canReplay: boolean }) {
   const [state, dispatch] = useReducer(
     gameReducer,
     puzzle,
@@ -64,12 +81,14 @@ export function GameView({
 
   const reducedMotion = usePrefersReducedMotion();
   const [shakeWords, setShakeWords] = useState<string[]>([]);
+  const [celebrateWords, setCelebrateWords] = useState<string[]>([]);
   const [inputLocked, setInputLocked] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [revealedLossCount, setRevealedLossCount] = useState(0);
   const [endModalOpen, setEndModalOpen] = useState(
     () => state.status === "won" || state.status === "lost",
   );
+  const [practice, setPractice] = useState(false);
   const clearToast = useCallback(() => setToast(null), []);
 
   const playing = state.status === "playing";
@@ -78,13 +97,17 @@ export function GameView({
 
   useEffect(() => {
     if (!persistProgress) return;
-    const saved = saveGameProgress(state, { updateStats: countTowardStats });
+    const saved = saveGameProgress(state, {
+      updateStats: countTowardStats && !practice,
+    });
     setStats(saved.stats);
   }, [
     persistProgress,
     countTowardStats,
+    practice,
     state.guesses,
     state.solved,
+    state.pendingSolve,
     state.mistakes,
     state.status,
     state.board,
@@ -131,11 +154,13 @@ export function GameView({
     }
 
     if (state.feedback === "correct") {
+      setCelebrateWords([...state.selected]);
       setInputLocked(true);
       const lockMs = reducedMotion ? 150 : COLLAPSE_LOCK_MS;
       const id = window.setTimeout(() => {
+        setCelebrateWords([]);
         setInputLocked(false);
-        dispatch({ type: "CLEAR_FEEDBACK" });
+        dispatch({ type: "COMMIT_SOLVE" });
       }, lockMs);
       return () => window.clearTimeout(id);
     }
@@ -143,7 +168,7 @@ export function GameView({
 
   useEffect(() => {
     if (state.status === "won") {
-      setToast("Perfect COMMS. You found every group.");
+      setToast("Perfect VCT COMMS. You found every group.");
     } else if (state.status === "lost") {
       setToast("Out of mistakes. Revealing categories…");
     }
@@ -192,6 +217,19 @@ export function GameView({
     return () => window.clearTimeout(id);
   }, [finished, state.status, state.puzzle.groups.length, state.solved.length, reducedMotion]);
 
+  function handlePlayAgain() {
+    if (!canReplay) return;
+    clearPuzzleProgress(state.puzzle.id);
+    setPractice(true);
+    setEndModalOpen(false);
+    setToast(null);
+    setShakeWords([]);
+    setCelebrateWords([]);
+    setInputLocked(false);
+    setRevealedLossCount(0);
+    dispatch({ type: "RESET" });
+  }
+
   function handleToggle(word: string) {
     if (inputLocked) return;
     if (state.selected.includes(word)) {
@@ -207,8 +245,8 @@ export function GameView({
         <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
           {badge}
         </p>
-        <h1 className="font-display text-5xl tracking-wide text-comms-text sm:text-6xl">
-          COMMS
+        <h1 className="font-display text-4xl tracking-wide text-comms-text sm:text-6xl">
+          VCT COMMS
         </h1>
         {hidePuzzleNumber ? (
           puzzle.author ? (
@@ -218,23 +256,35 @@ export function GameView({
           ) : null
         ) : (
           <p className="mt-1 font-body text-sm text-comms-muted">
-            Puzzle #{puzzle.id}
+            {formatDisplayDate(puzzle.date)}
           </p>
         )}
         {finished ? (
-          <button
-            type="button"
-            onClick={() => setEndModalOpen(true)}
-            className="mt-3 font-body text-xs font-semibold uppercase tracking-wide text-comms-accent underline-offset-2 hover:underline"
-          >
-            View results
-          </button>
+          <div className="mt-3 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setEndModalOpen(true)}
+              className="font-body text-xs font-semibold uppercase tracking-wide text-comms-accent underline-offset-2 hover:underline"
+            >
+              View results
+            </button>
+            {canReplay ? (
+              <button
+                type="button"
+                onClick={handlePlayAgain}
+                className="font-body text-xs font-semibold uppercase tracking-wide text-comms-muted underline-offset-2 hover:text-comms-text hover:underline"
+              >
+                Play again
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </header>
 
       <Board
         state={state}
         shakeWords={shakeWords}
+        celebrateWords={celebrateWords}
         revealedLossCount={revealedLossCount}
         inputLocked={inputLocked}
         onToggle={handleToggle}
@@ -257,7 +307,10 @@ export function GameView({
         />
       </div>
 
-      {countTowardStats && isClerkConfigured() && isSupabaseConfigured() ? (
+      {countTowardStats &&
+      !practice &&
+      isClerkConfigured() &&
+      isSupabaseConfigured() ? (
         <DailyResultSync puzzle={puzzle} state={state} />
       ) : null}
 
@@ -267,8 +320,9 @@ export function GameView({
         stats={stats}
         shareTitle={shareTitle}
         puzzleLink={puzzleLink}
-        showCareerStats={countTowardStats}
+        showCareerStats={countTowardStats && !practice}
         onClose={() => setEndModalOpen(false)}
+        onPlayAgain={canReplay ? handlePlayAgain : undefined}
       />
     </div>
   );

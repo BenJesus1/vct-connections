@@ -36,6 +36,18 @@ export function isSupabaseConfigured(): boolean {
   return Boolean(getSupabaseUrl() && getSupabasePublishableKey());
 }
 
+export function createPublicSupabaseClient(): SupabaseClient | null {
+  const url = getSupabaseUrl();
+  const key = getSupabasePublishableKey();
+  if (!url || !key) return null;
+
+  try {
+    return createClient(url, key);
+  } catch {
+    return null;
+  }
+}
+
 export function createClerkSupabaseClient(
   getToken: () => Promise<string | null>,
 ): SupabaseClient | null {

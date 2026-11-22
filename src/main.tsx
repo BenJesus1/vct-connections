@@ -24,6 +24,9 @@ createRoot(document.getElementById("root")!).render(
         publishableKey={publishableKey}
         afterSignOutUrl="/"
         signInUrl="/sign-in"
+        signUpUrl="/sign-in/continue"
+        signInFallbackRedirectUrl="/"
+        signUpFallbackRedirectUrl="/"
         appearance={clerkAppearance}
       >
         {app}
