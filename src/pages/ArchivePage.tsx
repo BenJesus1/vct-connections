@@ -1,9 +1,21 @@
 import { Link } from "react-router-dom";
+import { RequireAccount } from "../components/AccountGate";
 import { getPlayableArchive } from "../data/puzzles";
 import { formatLocalDate } from "../game/daily";
 import { loadSavedState } from "../game/storage";
 
 export function ArchivePage() {
+  return (
+    <RequireAccount
+      title="Archive"
+      signedOutBody="Sign in with Google to replay past COMMS. Today's puzzle stays open without an account."
+    >
+      <ArchiveList />
+    </RequireAccount>
+  );
+}
+
+function ArchiveList() {
   const archive = getPlayableArchive();
   const todayKey = formatLocalDate();
   const saved = loadSavedState();

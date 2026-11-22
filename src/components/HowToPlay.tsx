@@ -66,6 +66,7 @@ export function HowToPlay({ open, onClose }: HowToPlayProps) {
               <li>• You get four mistakes.</li>
               <li>• &quot;One away...&quot; means three tiles belong together.</li>
               <li>• Repeating an exact guess does not cost a mistake.</li>
+              <li>• Progress is saved in this browser even if you do not sign in.</li>
             </ul>
 
             <p className="mt-5 font-body text-xs font-semibold uppercase tracking-wide text-comms-muted">

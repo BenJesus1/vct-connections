@@ -13,6 +13,9 @@ import {
 } from "../game/storage";
 import type { Puzzle, SavedState } from "../game/types";
 import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+import { isClerkConfigured } from "../auth/clerk";
+import { DailyResultSync } from "./DailyResultSync";
+import { isSupabaseConfigured } from "../lib/supabase";
 
 const SHAKE_MS = 380;
 const COLLAPSE_LOCK_MS = 320;
@@ -23,6 +26,8 @@ interface GameViewProps {
   /** Shown under the title, e.g. "Daily" or "Archive". */
   badge?: string;
   persistProgress?: boolean;
+  /** When false, guest progress still saves but does not change streak / win stats. */
+  countTowardStats?: boolean;
   hidePuzzleNumber?: boolean;
   shareTitle?: string;
   puzzleLink?: string;
@@ -43,6 +48,7 @@ export function GameView({
   puzzle,
   badge = "Daily",
   persistProgress = true,
+  countTowardStats = persistProgress,
   hidePuzzleNumber = false,
   shareTitle,
   puzzleLink,
@@ -72,10 +78,11 @@ export function GameView({
 
   useEffect(() => {
     if (!persistProgress) return;
-    const saved = saveGameProgress(state);
+    const saved = saveGameProgress(state, { updateStats: countTowardStats });
     setStats(saved.stats);
   }, [
     persistProgress,
+    countTowardStats,
     state.guesses,
     state.solved,
     state.mistakes,
@@ -250,13 +257,17 @@ export function GameView({
         />
       </div>
 
+      {countTowardStats && isClerkConfigured() && isSupabaseConfigured() ? (
+        <DailyResultSync puzzle={puzzle} state={state} />
+      ) : null}
+
       <EndModal
         open={endModalOpen && finished}
         state={state}
         stats={stats}
         shareTitle={shareTitle}
         puzzleLink={puzzleLink}
-        showCareerStats={persistProgress}
+        showCareerStats={countTowardStats}
         onClose={() => setEndModalOpen(false)}
       />
     </div>

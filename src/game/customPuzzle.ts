@@ -184,6 +184,43 @@ function payloadToDraft(payload: unknown): CustomPuzzleDraft | null {
   };
 }
 
+
+export const CREATE_DRAFT_KEY = "comms:create-draft:v1";
+
+function isCustomDraft(value: unknown): value is CustomPuzzleDraft {
+  if (!value || typeof value !== "object") return false;
+  const draft = value as CustomPuzzleDraft;
+  return typeof draft.author === "string" && Array.isArray(draft.groups) && draft.groups.length === 4;
+}
+
+export function loadCreateDraft(): CustomPuzzleDraft | null {
+  try {
+    const raw = localStorage.getItem(CREATE_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isCustomDraft(parsed)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCreateDraft(draft: CustomPuzzleDraft): void {
+  try {
+    localStorage.setItem(CREATE_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // ignore
+  }
+}
+
+export function clearCreateDraft(): void {
+  try {
+    localStorage.removeItem(CREATE_DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export function customShareTitle(puzzle: Puzzle): string {
   return puzzle.author ? `COMMS by ${puzzle.author}` : "COMMS Custom";
 }

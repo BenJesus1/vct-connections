@@ -36,7 +36,8 @@ export function CustomPlayPage() {
         key={encoded}
         puzzle={puzzle}
         badge="Custom"
-        persistProgress={false}
+        persistProgress
+        countTowardStats={false}
         hidePuzzleNumber
         shareTitle={customShareTitle(puzzle)}
         puzzleLink={puzzleLink}

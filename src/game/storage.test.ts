@@ -104,6 +104,27 @@ describe("storage", () => {
     expect(saved.stats.played).toBe(1);
   });
 
+  it("can persist a guest game without touching career stats", () => {
+    let state = createInitialState(puzzle, { shuffle: false });
+    for (const words of [
+      ["Ascent", "Bind", "Lotus", "Pearl"],
+      ["Acend", "LOUD", "Evil Geniuses", "EDward Gaming"],
+      ["Brimstone", "Viper", "Astra", "Harbor"],
+      ["Omen", "Raze", "Sage", "Iso"],
+    ]) {
+      state = words.reduce(
+        (s, word) => gameReducer(s, { type: "SELECT", word }),
+        gameReducer(state, { type: "DESELECT_ALL" }),
+      );
+      state = gameReducer(state, { type: "SUBMIT" });
+    }
+
+    const saved = saveGameProgress(state, { updateStats: false });
+    expect(saved.byPuzzle[1]?.status).toBe("won");
+    expect(saved.stats.played).toBe(0);
+    expect(saved.stats.won).toBe(0);
+  });
+
   it("round-trips progressFromGame fields", () => {
     const state = createInitialState(puzzle, {
       board: ["Omen", "Ascent", "Raze", "Bind"],

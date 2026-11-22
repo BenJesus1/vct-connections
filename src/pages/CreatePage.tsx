@@ -1,11 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useUser } from "@clerk/react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { RequireAccount } from "../components/AccountGate";
 import { copyShareText } from "../game/share";
 import {
   decodeCustomPuzzle,
   emptyCustomDraft,
   encodeCustomPuzzle,
   draftToPuzzle,
+  loadCreateDraft,
+  saveCreateDraft,
+  clearCreateDraft,
   MAX_AUTHOR_LENGTH,
   MAX_CATEGORY_LENGTH,
   MAX_WORD_LENGTH,
@@ -15,13 +20,45 @@ import {
 } from "../game/customPuzzle";
 import { DIFFICULTY } from "../theme";
 
+function AuthorAutofill({
+  onName,
+}: {
+  onName: (name: string) => void;
+}) {
+  const { isLoaded, user } = useUser();
+
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+    const name =
+      [user.firstName, user.lastName].filter(Boolean).join(" ") ||
+      user.username ||
+      "";
+    if (name) onName(name.slice(0, MAX_AUTHOR_LENGTH));
+  }, [isLoaded, user, onName]);
+
+  return null;
+}
+
 function draftFromSearch(encoded: string | null): CustomPuzzleDraft {
-  if (!encoded) return emptyCustomDraft();
-  const puzzle = decodeCustomPuzzle(encoded);
-  return puzzle ? puzzleToDraft(puzzle) : emptyCustomDraft();
+  if (encoded) {
+    const puzzle = decodeCustomPuzzle(encoded);
+    return puzzle ? puzzleToDraft(puzzle) : emptyCustomDraft();
+  }
+  return loadCreateDraft() ?? emptyCustomDraft();
 }
 
 export function CreatePage() {
+  return (
+    <RequireAccount
+      title="Create"
+      signedOutBody="Sign in with Google to make a custom COMMS and share a play link."
+    >
+      <CreateForm />
+    </RequireAccount>
+  );
+}
+
+function CreateForm() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [draft, setDraft] = useState<CustomPuzzleDraft>(() =>
@@ -33,6 +70,10 @@ export function CreatePage() {
   const encoded = useMemo(() => {
     if (validateCustomDraft(draft).length > 0) return null;
     return encodeCustomPuzzle(draftToPuzzle(draft));
+  }, [draft]);
+
+  useEffect(() => {
+    saveCreateDraft(draft);
   }, [draft]);
 
   function updateAuthor(author: string) {
@@ -103,6 +144,14 @@ export function CreatePage() {
           the URL — nothing is saved on a server.
         </p>
       </header>
+
+      <AuthorAutofill
+        onName={(name) =>
+          setDraft((prev) =>
+            prev.author.trim() ? prev : { ...prev, author: name },
+          )
+        }
+      />
 
       <label className="mb-5 block">
         <span className="mb-1.5 block font-body text-[11px] font-semibold uppercase tracking-wide text-comms-muted">
@@ -189,6 +238,7 @@ export function CreatePage() {
           type="button"
           onClick={() => {
             setDraft(emptyCustomDraft());
+            clearCreateDraft();
             setErrors([]);
           }}
           className="font-body text-xs font-semibold uppercase tracking-wide text-comms-muted hover:text-comms-text"

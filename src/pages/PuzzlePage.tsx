@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router-dom";
+import { RequireAccount } from "../components/AccountGate";
 import { GameView } from "../components/GameView";
 import { getPuzzleById } from "../data/puzzles";
 import { formatLocalDate } from "../game/daily";
@@ -43,11 +44,22 @@ export function PuzzlePage() {
     );
   }
 
-  return (
+  const game = (
     <GameView
       key={puzzle.id}
       puzzle={puzzle}
       badge={puzzle.date === todayKey ? "Daily" : "Archive"}
     />
+  );
+
+  if (puzzle.date === todayKey) return game;
+
+  return (
+    <RequireAccount
+      title="Archive"
+      signedOutBody="Sign in with Google to replay past COMMS. Today's puzzle stays open without an account."
+    >
+      {game}
+    </RequireAccount>
   );
 }

@@ -45,7 +45,11 @@ export function loadSavedState(): SavedState {
 }
 
 export function writeSavedState(state: SavedState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Private mode / quota — keep the in-memory result without crashing.
+  }
 }
 
 export function progressFromGame(state: GameState): PuzzleProgress {
@@ -60,14 +64,19 @@ export function progressFromGame(state: GameState): PuzzleProgress {
 
 /**
  * Persist mid-game / end-game progress. Updates lifetime stats the first time
- * a puzzle finishes (won or lost).
+ * a puzzle finishes (won or lost), unless `updateStats` is false (custom games).
  */
-export function saveGameProgress(state: GameState): SavedState {
+export function saveGameProgress(
+  state: GameState,
+  options?: { updateStats?: boolean },
+): SavedState {
+  const updateStats = options?.updateStats ?? true;
   const saved = loadSavedState();
   const prev = saved.byPuzzle[state.puzzle.id];
   const progress = progressFromGame(state);
 
   const finishing =
+    updateStats &&
     (state.status === "won" || state.status === "lost") &&
     (!prev || prev.status === "playing");
 

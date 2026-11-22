@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   formatCountdown,
   msUntilNextLocalMidnight,
@@ -174,6 +175,15 @@ export function EndModal({
               >
                 {copiedLink ? "Link copied!" : "Copy puzzle link"}
               </button>
+            ) : null}
+
+            {showCareerStats ? (
+              <Link
+                to="/ranks"
+                className="mt-2.5 block text-center font-body text-xs font-semibold uppercase tracking-wide text-comms-accent hover:underline"
+              >
+                View ranks
+              </Link>
             ) : null}
 
             {showCareerStats ? (
