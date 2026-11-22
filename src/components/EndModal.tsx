@@ -11,19 +11,34 @@ interface EndModalProps {
   open: boolean;
   state: GameState;
   stats: SavedState["stats"];
+  shareTitle?: string;
+  puzzleLink?: string;
+  showCareerStats?: boolean;
   onClose: () => void;
 }
 
-export function EndModal({ open, state, stats, onClose }: EndModalProps) {
+export function EndModal({
+  open,
+  state,
+  stats,
+  shareTitle,
+  puzzleLink,
+  showCareerStats = true,
+  onClose,
+}: EndModalProps) {
   const reducedMotion = useReducedMotion();
   const [countdown, setCountdown] = useState(() =>
     formatCountdown(msUntilNextLocalMidnight()),
   );
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const shareText = useMemo(
-    () => buildShareText(state.puzzle, state.guesses),
-    [state.puzzle, state.guesses],
+    () =>
+      buildShareText(state.puzzle, state.guesses, {
+        title: shareTitle,
+      }),
+    [state.puzzle, state.guesses, shareTitle],
   );
 
   const winRate =
@@ -38,7 +53,10 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
   }, [open]);
 
   useEffect(() => {
-    if (!open) setCopied(false);
+    if (!open) {
+      setCopied(false);
+      setCopiedLink(false);
+    }
   }, [open]);
 
   async function handleShare() {
@@ -49,11 +67,22 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
     }
   }
 
+  async function handleCopyLink() {
+    if (!puzzleLink) return;
+    const ok = await copyShareText(puzzleLink);
+    if (ok) {
+      setCopiedLink(true);
+      window.setTimeout(() => setCopiedLink(false), 1600);
+    }
+  }
+
   const title = state.status === "won" ? "COMMS SECURE" : "SIGNAL LOST";
   const subtitle =
     state.status === "won"
       ? `Cleared with ${state.mistakes} mistake${state.mistakes === 1 ? "" : "s"}`
-      : "Out of mistakes — better luck tomorrow";
+      : showCareerStats
+        ? "Out of mistakes — better luck tomorrow"
+        : "Out of mistakes";
 
   return (
     <AnimatePresence>
@@ -80,7 +109,7 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
-                  Puzzle #{state.puzzle.id}
+                  {shareTitle ?? `Puzzle #${state.puzzle.id}`}
                 </p>
                 <h2
                   id="end-modal-title"
@@ -100,26 +129,30 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-4 gap-2 text-center">
-              <Stat label="Played" value={String(stats.played)} />
-              <Stat label="Win %" value={String(winRate)} />
-              <Stat label="Streak" value={String(stats.currentStreak)} />
-              <Stat label="Max" value={String(stats.maxStreak)} />
-            </div>
+            {showCareerStats ? (
+              <>
+                <div className="mt-5 grid grid-cols-4 gap-2 text-center">
+                  <Stat label="Played" value={String(stats.played)} />
+                  <Stat label="Win %" value={String(winRate)} />
+                  <Stat label="Streak" value={String(stats.currentStreak)} />
+                  <Stat label="Max" value={String(stats.maxStreak)} />
+                </div>
 
-            <div className="mt-5">
-              <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-comms-muted">
-                Mistake distribution
-              </p>
-              <MistakeBars
-                distribution={stats.mistakeDistribution}
-                highlight={
-                  state.status === "won"
-                    ? Math.min(3, state.mistakes)
-                    : 4
-                }
-              />
-            </div>
+                <div className="mt-5">
+                  <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-comms-muted">
+                    Mistake distribution
+                  </p>
+                  <MistakeBars
+                    distribution={stats.mistakeDistribution}
+                    highlight={
+                      state.status === "won"
+                        ? Math.min(3, state.mistakes)
+                        : 4
+                    }
+                  />
+                </div>
+              </>
+            ) : null}
 
             <pre className="mt-5 overflow-x-auto rounded-sm bg-comms-tile px-3 py-3 font-body text-sm leading-relaxed text-comms-text">
               {shareText}
@@ -130,17 +163,29 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
               onClick={() => void handleShare()}
               className="clip-angled mt-4 w-full bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
             >
-              {copied ? "Copied!" : "Share"}
+              {copied ? "Copied!" : "Share results"}
             </button>
 
-            <div className="mt-5 border-t border-comms-text/10 pt-4 text-center">
-              <p className="font-body text-xs uppercase tracking-wide text-comms-muted">
-                Next puzzle in
-              </p>
-              <p className="mt-1 font-display text-2xl tracking-wide text-comms-text tabular-nums">
-                {countdown}
-              </p>
-            </div>
+            {puzzleLink ? (
+              <button
+                type="button"
+                onClick={() => void handleCopyLink()}
+                className="clip-angled mt-2.5 w-full border border-comms-text/70 bg-transparent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:bg-comms-tile"
+              >
+                {copiedLink ? "Link copied!" : "Copy puzzle link"}
+              </button>
+            ) : null}
+
+            {showCareerStats ? (
+              <div className="mt-5 border-t border-comms-text/10 pt-4 text-center">
+                <p className="font-body text-xs uppercase tracking-wide text-comms-muted">
+                  Next puzzle in
+                </p>
+                <p className="mt-1 font-display text-2xl tracking-wide text-comms-text tabular-nums">
+                  {countdown}
+                </p>
+              </div>
+            ) : null}
           </motion.div>
         </motion.div>
       ) : null}

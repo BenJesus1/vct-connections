@@ -22,19 +22,36 @@ interface GameViewProps {
   puzzle: Puzzle;
   /** Shown under the title, e.g. "Daily" or "Archive". */
   badge?: string;
+  persistProgress?: boolean;
+  hidePuzzleNumber?: boolean;
+  shareTitle?: string;
+  puzzleLink?: string;
 }
 
-function initialGameState(puzzle: Puzzle) {
-  const saved = loadSavedState();
-  const progress = getPuzzleProgress(saved, puzzle.id);
-  if (progress) {
-    return restoreState(puzzle, progress, progress.board);
+function initialGameState(puzzle: Puzzle, persistProgress: boolean) {
+  if (persistProgress) {
+    const saved = loadSavedState();
+    const progress = getPuzzleProgress(saved, puzzle.id);
+    if (progress) {
+      return restoreState(puzzle, progress, progress.board);
+    }
   }
   return createInitialState(puzzle);
 }
 
-export function GameView({ puzzle, badge = "Daily" }: GameViewProps) {
-  const [state, dispatch] = useReducer(gameReducer, puzzle, initialGameState);
+export function GameView({
+  puzzle,
+  badge = "Daily",
+  persistProgress = true,
+  hidePuzzleNumber = false,
+  shareTitle,
+  puzzleLink,
+}: GameViewProps) {
+  const [state, dispatch] = useReducer(
+    gameReducer,
+    puzzle,
+    (p) => initialGameState(p, persistProgress),
+  );
   const [stats, setStats] = useState<SavedState["stats"]>(
     () => loadSavedState().stats,
   );
@@ -54,9 +71,17 @@ export function GameView({ puzzle, badge = "Daily" }: GameViewProps) {
   const controlsDisabled = !playing || inputLocked;
 
   useEffect(() => {
+    if (!persistProgress) return;
     const saved = saveGameProgress(state);
     setStats(saved.stats);
-  }, [state.guesses, state.solved, state.mistakes, state.status, state.board]);
+  }, [
+    persistProgress,
+    state.guesses,
+    state.solved,
+    state.mistakes,
+    state.status,
+    state.board,
+  ]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -178,9 +203,17 @@ export function GameView({ puzzle, badge = "Daily" }: GameViewProps) {
         <h1 className="font-display text-5xl tracking-wide text-comms-text sm:text-6xl">
           COMMS
         </h1>
-        <p className="mt-1 font-body text-sm text-comms-muted">
-          Puzzle #{puzzle.id}
-        </p>
+        {hidePuzzleNumber ? (
+          puzzle.author ? (
+            <p className="mt-1 font-body text-sm text-comms-muted">
+              By {puzzle.author}
+            </p>
+          ) : null
+        ) : (
+          <p className="mt-1 font-body text-sm text-comms-muted">
+            Puzzle #{puzzle.id}
+          </p>
+        )}
         {finished ? (
           <button
             type="button"
@@ -221,6 +254,9 @@ export function GameView({ puzzle, badge = "Daily" }: GameViewProps) {
         open={endModalOpen && finished}
         state={state}
         stats={stats}
+        shareTitle={shareTitle}
+        puzzleLink={puzzleLink}
+        showCareerStats={persistProgress}
         onClose={() => setEndModalOpen(false)}
       />
     </div>

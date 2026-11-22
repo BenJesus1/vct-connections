@@ -8,6 +8,8 @@ import {
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { ArchivePage } from "./pages/ArchivePage";
+import { CreatePage } from "./pages/CreatePage";
+import { CustomPlayPage } from "./pages/CustomPlayPage";
 import { HomePage } from "./pages/HomePage";
 import { PuzzlePage } from "./pages/PuzzlePage";
 
@@ -32,6 +34,8 @@ export function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/archive" element={<ArchivePage />} />
+        <Route path="/create" element={<CreatePage />} />
+        <Route path="/play" element={<CustomPlayPage />} />
         <Route path="/puzzle/:id" element={<PuzzlePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

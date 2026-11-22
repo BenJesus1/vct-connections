@@ -12,7 +12,7 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function SiteHeader({ onHowToPlay }: SiteHeaderProps) {
   return (
-    <nav className="mx-auto mb-4 flex max-w-[390px] items-center justify-between gap-3">
+    <nav className="mx-auto mb-4 flex max-w-[390px] flex-wrap items-center justify-between gap-3">
       <Link
         to="/"
         className="font-display text-lg tracking-wide text-comms-text"
@@ -25,6 +25,9 @@ export function SiteHeader({ onHowToPlay }: SiteHeaderProps) {
         </NavLink>
         <NavLink to="/archive" className={linkClass}>
           Archive
+        </NavLink>
+        <NavLink to="/create" className={linkClass}>
+          Create
         </NavLink>
         <button
           type="button"
