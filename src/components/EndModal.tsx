@@ -1,29 +1,61 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   formatCountdown,
+  formatDisplayDate,
   msUntilNextLocalMidnight,
 } from "../game/daily";
+import {
+  commsRankFromProgress,
+  emptyRankDistribution,
+  isRadiantSolve,
+} from "../game/ranks";
 import { buildShareText, copyShareText } from "../game/share";
+import {
+  COMMS_PUBLIC_RANK_ORDER,
+  COMMS_RANK,
+  COMMS_RANK_ORDER,
+  type CommsRank,
+} from "../theme";
+import { RankLabel } from "./RankLabel";
 import type { GameState, SavedState } from "../game/types";
 
 interface EndModalProps {
   open: boolean;
   state: GameState;
   stats: SavedState["stats"];
+  shareTitle?: string;
+  puzzleLink?: string;
+  showCareerStats?: boolean;
   onClose: () => void;
+  onPlayAgain?: () => void;
 }
 
-export function EndModal({ open, state, stats, onClose }: EndModalProps) {
+export function EndModal({
+  open,
+  state,
+  stats,
+  shareTitle,
+  puzzleLink,
+  showCareerStats = true,
+  onClose,
+  onPlayAgain,
+}: EndModalProps) {
   const reducedMotion = useReducedMotion();
   const [countdown, setCountdown] = useState(() =>
     formatCountdown(msUntilNextLocalMidnight()),
   );
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [backdropArmed, setBackdropArmed] = useState(false);
 
   const shareText = useMemo(
-    () => buildShareText(state.puzzle, state.guesses),
-    [state.puzzle, state.guesses],
+    () =>
+      buildShareText(state.puzzle, state.guesses, {
+        title: shareTitle,
+      }),
+    [state.puzzle, state.guesses, shareTitle],
   );
 
   const winRate =
@@ -38,7 +70,14 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
   }, [open]);
 
   useEffect(() => {
-    if (!open) setCopied(false);
+    if (!open) {
+      setCopied(false);
+      setCopiedLink(false);
+      setBackdropArmed(false);
+      return;
+    }
+    const id = window.setTimeout(() => setBackdropArmed(true), 350);
+    return () => window.clearTimeout(id);
   }, [open]);
 
   async function handleShare() {
@@ -49,28 +88,49 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
     }
   }
 
-  const title = state.status === "won" ? "COMMS SECURE" : "SIGNAL LOST";
-  const subtitle =
-    state.status === "won"
+  async function handleCopyLink() {
+    if (!puzzleLink) return;
+    const ok = await copyShareText(puzzleLink);
+    if (ok) {
+      setCopiedLink(true);
+      window.setTimeout(() => setCopiedLink(false), 1600);
+    }
+  }
+
+  const title = state.status === "won" ? "VCT COMMS COMPLETED" : "SIGNAL LOST";
+  const earnedRank =
+    state.status === "won" || state.status === "lost"
+      ? commsRankFromProgress(state.puzzle, state)
+      : null;
+  const radiantClear =
+    state.status === "won" && isRadiantSolve(state.puzzle, state.solved);
+  const subtitle = radiantClear
+    ? "Radiant, Immortal, Gold, then Iron"
+    : state.status === "won"
       ? `Cleared with ${state.mistakes} mistake${state.mistakes === 1 ? "" : "s"}`
-      : "Out of mistakes — better luck tomorrow";
+      : showCareerStats
+        ? "Out of mistakes — better luck tomorrow"
+        : "Out of mistakes";
 
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+          className={[
+            "fixed inset-0 z-[70] flex items-end justify-center bg-black/70 sm:items-center sm:p-4",
+            backdropArmed ? "" : "pointer-events-none",
+          ].join(" ")}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reducedMotion ? 0.15 : 0.2 }}
-          onClick={onClose}
+          onClick={backdropArmed ? onClose : undefined}
         >
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="end-modal-title"
-            className="w-full max-w-[390px] border border-comms-text/15 bg-comms-bg p-5 shadow-2xl"
+            className="max-h-[min(90dvh,100%)] w-full max-w-[390px] overflow-y-auto border border-comms-text/15 bg-comms-bg p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
@@ -80,46 +140,56 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
-                  Puzzle #{state.puzzle.id}
+                  {shareTitle ?? formatDisplayDate(state.puzzle.date)}
                 </p>
                 <h2
                   id="end-modal-title"
-                  className="mt-1 font-display text-3xl tracking-wide text-comms-text"
+                  className="mt-1 font-display text-2xl tracking-wide text-comms-text sm:text-3xl"
                 >
                   {title}
                 </h2>
+                {earnedRank ? (
+                  <p className="mt-1">
+                    <RankLabel rank={earnedRank} className="text-xl" />
+                  </p>
+                ) : null}
                 <p className="mt-1 font-body text-sm text-comms-muted">{subtitle}</p>
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="font-body text-sm text-comms-muted hover:text-comms-text"
+                className="inline-flex min-h-11 shrink-0 items-center px-2 font-body text-sm text-comms-muted hover:text-comms-text"
                 aria-label="Close"
               >
                 Close
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-4 gap-2 text-center">
-              <Stat label="Played" value={String(stats.played)} />
-              <Stat label="Win %" value={String(winRate)} />
-              <Stat label="Streak" value={String(stats.currentStreak)} />
-              <Stat label="Max" value={String(stats.maxStreak)} />
-            </div>
+            {showCareerStats ? (
+              <>
+                <div className="mt-5 grid grid-cols-4 gap-1 text-center sm:gap-2">
+                  <Stat label="Played" value={String(stats.played)} />
+                  <Stat label="Win %" value={String(winRate)} />
+                  <Stat label="Streak" value={String(stats.currentStreak)} />
+                  <Stat label="Max" value={String(stats.maxStreak)} />
+                </div>
 
-            <div className="mt-5">
-              <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-comms-muted">
-                Mistake distribution
-              </p>
-              <MistakeBars
-                distribution={stats.mistakeDistribution}
-                highlight={
-                  state.status === "won"
-                    ? Math.min(3, state.mistakes)
-                    : 4
-                }
-              />
-            </div>
+                <div className="mt-5">
+                  <p className="mb-2 font-body text-xs font-semibold uppercase tracking-wide text-comms-muted">
+                    Rank distribution
+                  </p>
+                  <RankBars
+                    distribution={stats.rankDistribution ?? emptyRankDistribution()}
+                    highlight={earnedRank}
+                    showRadiant={
+                      earnedRank === "Radiant" ||
+                      (stats.rankDistribution?.[COMMS_RANK_ORDER.indexOf("Radiant")] ??
+                        0) > 0
+                    }
+                  />
+                </div>
+              </>
+            ) : null}
 
             <pre className="mt-5 overflow-x-auto rounded-sm bg-comms-tile px-3 py-3 font-body text-sm leading-relaxed text-comms-text">
               {shareText}
@@ -130,17 +200,48 @@ export function EndModal({ open, state, stats, onClose }: EndModalProps) {
               onClick={() => void handleShare()}
               className="clip-angled mt-4 w-full bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
             >
-              {copied ? "Copied!" : "Share"}
+              {copied ? "Copied!" : "Share results"}
             </button>
 
-            <div className="mt-5 border-t border-comms-text/10 pt-4 text-center">
-              <p className="font-body text-xs uppercase tracking-wide text-comms-muted">
-                Next puzzle in
-              </p>
-              <p className="mt-1 font-display text-2xl tracking-wide text-comms-text tabular-nums">
-                {countdown}
-              </p>
-            </div>
+            {puzzleLink ? (
+              <button
+                type="button"
+                onClick={() => void handleCopyLink()}
+                className="clip-angled mt-2.5 w-full border border-comms-text/70 bg-transparent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:bg-comms-tile"
+              >
+                {copiedLink ? "Link copied!" : "Copy puzzle link"}
+              </button>
+            ) : null}
+
+            {onPlayAgain ? (
+              <button
+                type="button"
+                onClick={onPlayAgain}
+                className="clip-angled mt-2.5 w-full border border-comms-text/70 bg-transparent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:bg-comms-tile"
+              >
+                Play again
+              </button>
+            ) : null}
+
+            {showCareerStats ? (
+              <Link
+                to="/ranks"
+                className="mt-2.5 block text-center font-body text-xs font-semibold uppercase tracking-wide text-comms-accent hover:underline"
+              >
+                View ranks
+              </Link>
+            ) : null}
+
+            {showCareerStats ? (
+              <div className="mt-5 border-t border-comms-text/10 pt-4 text-center">
+                <p className="font-body text-xs uppercase tracking-wide text-comms-muted">
+                  Next puzzle in
+                </p>
+                <p className="mt-1 font-display text-2xl tracking-wide text-comms-text tabular-nums">
+                  {countdown}
+                </p>
+              </div>
+            ) : null}
           </motion.div>
         </motion.div>
       ) : null}
@@ -159,37 +260,47 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function MistakeBars({
+function RankBars({
   distribution,
   highlight,
+  showRadiant,
 }: {
-  distribution: [number, number, number, number, number];
-  highlight: number;
+  distribution: [number, number, number, number, number, number];
+  highlight: CommsRank | null;
+  showRadiant: boolean;
 }) {
-  const labels = ["0", "1", "2", "3", "X"];
-  const max = Math.max(1, ...distribution);
+  const ranks = showRadiant ? COMMS_RANK_ORDER : COMMS_PUBLIC_RANK_ORDER;
+  const max = Math.max(
+    1,
+    ...ranks.map((rank) => distribution[COMMS_RANK_ORDER.indexOf(rank)] ?? 0),
+  );
 
   return (
-    <div className="flex h-24 items-end gap-1.5">
-      {distribution.map((count, i) => {
+    <div className="flex h-24 items-stretch gap-1">
+      {ranks.map((rank) => {
+        const count = distribution[COMMS_RANK_ORDER.indexOf(rank)] ?? 0;
         const height = Math.max(8, Math.round((count / max) * 100));
-        const active = i === highlight;
+        const active = rank === highlight;
+        const style = COMMS_RANK[rank];
         return (
-          <div key={labels[i]} className="flex flex-1 flex-col items-center gap-1">
+          <div key={rank} className="flex min-h-0 flex-1 flex-col items-center gap-1">
             <div
-              className="flex w-full flex-1 items-end"
-              title={`${count}`}
+              className="flex w-full min-h-0 flex-1 items-end"
+              title={`${style.name}: ${count}`}
             >
               <div
                 className={[
                   "w-full rounded-sm transition-colors",
-                  active ? "bg-comms-accent" : "bg-comms-tile",
+                  active ? "" : "bg-comms-tile",
                 ].join(" ")}
-                style={{ height: `${height}%` }}
+                style={{
+                  height: `${height}%`,
+                  backgroundColor: active ? style.color : undefined,
+                }}
               />
             </div>
-            <span className="font-body text-[10px] text-comms-muted">
-              {labels[i]}
+            <span className="w-full truncate text-center font-body text-[9px] leading-tight text-comms-muted">
+              {style.name}
             </span>
           </div>
         );
