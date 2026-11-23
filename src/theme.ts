@@ -1,5 +1,7 @@
 import type { Difficulty } from "./game/types";
 
+export const CREATOR_DISCORD = "kobep17";
+
 export const COLORS = {
   bg: "#0F1923",
   tile: "#1F2731",

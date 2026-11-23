@@ -15,25 +15,6 @@ function GoogleMark() {
   );
 }
 
-function openGooglePopup(): Window | null {
-  const width = 500;
-  const height = 700;
-  const left = Math.round(window.screenX + (window.outerWidth - width) / 2);
-  const top = Math.round(window.screenY + (window.outerHeight - height) / 2);
-  const popup = window.open(
-    "about:blank",
-    "",
-    `width=${width},height=${height},left=${left},top=${top}`,
-  );
-  if (popup) {
-    popup.document.write(
-      `<!doctype html><title>Google sign-in</title><body style="margin:0;background:#0f1923;color:#ece8e1;font:14px system-ui;display:grid;place-items:center;height:100vh">Connecting to Google…</body>`,
-    );
-    popup.document.close();
-  }
-  return popup;
-}
-
 function GoogleSignIn() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -52,33 +33,16 @@ function GoogleSignIn() {
       return;
     }
     setLocalError(null);
-    const popup = openGooglePopup();
     try {
       const { error } = await signIn.sso({
         strategy: "oauth_google",
         redirectUrl: nextPath,
         redirectCallbackUrl: "/sso-callback",
-        popup: popup ?? undefined,
       });
       if (error) {
-        popup?.close();
         setLocalError(error.message);
-        return;
-      }
-      if (signIn.status === "complete") {
-        await signIn.finalize({
-          navigate: ({ decorateUrl }) => {
-            const destination = decorateUrl(nextPath);
-            if (destination.startsWith("http")) {
-              window.location.assign(destination);
-              return;
-            }
-            void navigate(destination, { replace: true });
-          },
-        });
       }
     } catch (error) {
-      popup?.close();
       setLocalError(
         error instanceof Error ? error.message : "Google sign-in failed",
       );
@@ -109,7 +73,7 @@ function GoogleSignIn() {
         className="clip-angled mt-8 flex min-h-11 w-full items-center justify-center gap-3 bg-comms-tile px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:brightness-110 disabled:opacity-60"
       >
         <GoogleMark />
-        {busy ? "Connecting…" : "Continue with Google"}
+        {busy ? "Redirecting…" : "Continue with Google"}
       </button>
 
       {localError || clerkError ? (
