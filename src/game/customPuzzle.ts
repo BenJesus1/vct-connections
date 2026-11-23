@@ -35,6 +35,27 @@ function emptyGroup(): CustomGroupDraft {
   return { category: "", words: ["", "", "", ""] };
 }
 
+/** Reorder draft slots so index 0–3 match the chosen Iron–Radiant colors. */
+export function reorderDraftByDifficulties(
+  groups: CustomPuzzleDraft["groups"],
+  difficulties: Difficulty[],
+): CustomPuzzleDraft["groups"] | null {
+  if (groups.length !== 4 || difficulties.length !== 4) return null;
+  if (new Set(difficulties).size !== 4) return null;
+  if (![1, 2, 3, 4].every((tier) => difficulties.includes(tier as Difficulty))) {
+    return null;
+  }
+  const ranked = groups.map((group, index) => ({
+    group: {
+      category: group.category,
+      words: [...group.words] as CustomPuzzleDraft["groups"][number]["words"],
+    },
+    difficulty: difficulties[index]!,
+  }));
+  ranked.sort((a, b) => a.difficulty - b.difficulty);
+  return ranked.map((item) => item.group) as CustomPuzzleDraft["groups"];
+}
+
 export function validateCustomDraft(draft: CustomPuzzleDraft): string[] {
   const errors: string[] = [];
   const author = draft.author.trim();

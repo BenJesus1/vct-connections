@@ -14,9 +14,12 @@ import {
   clearCreateDraft,
   MAX_AUTHOR_LENGTH,
   puzzleToDraft,
+  reorderDraftByDifficulties,
   validateCustomDraft,
   type CustomPuzzleDraft,
 } from "../game/customPuzzle";
+import { GroupDifficultyEditor } from "../components/GroupDifficultyEditor";
+import type { Difficulty } from "../game/types";
 
 function AuthorAutofill({
   onName,
@@ -90,6 +93,14 @@ function CreateForm() {
         i === groupIndex ? { ...group, category } : group,
       ) as CustomPuzzleDraft["groups"];
       return { ...prev, groups };
+    });
+    setErrors([]);
+  }
+
+  function applyDifficulties(difficulties: Difficulty[]) {
+    setDraft((prev) => {
+      const groups = reorderDraftByDifficulties(prev.groups, difficulties);
+      return groups ? { ...prev, groups } : prev;
     });
     setErrors([]);
   }
@@ -168,6 +179,18 @@ function CreateForm() {
           className="w-full rounded-sm border border-comms-text/15 bg-comms-tile px-3 py-2 font-body text-sm text-comms-text outline-none placeholder:text-comms-muted/60 focus:border-comms-accent"
         />
       </label>
+
+      <div className="mb-4">
+        <GroupDifficultyEditor
+          items={draft.groups.map((group, index) => ({
+            key: String(index),
+            label: group.category.trim() || `Group ${index + 1}`,
+            difficulty: (index + 1) as Difficulty,
+          }))}
+          applyLabel="Apply colors"
+          onApply={applyDifficulties}
+        />
+      </div>
 
       <PuzzleGroupFields
         groups={draft.groups}

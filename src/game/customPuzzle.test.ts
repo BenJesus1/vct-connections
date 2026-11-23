@@ -7,6 +7,7 @@ import {
   loadCreateDraft,
   puzzleToDraft,
   saveCreateDraft,
+  reorderDraftByDifficulties,
   validateCustomDraft,
 } from "./customPuzzle";
 import type { Puzzle } from "./types";
@@ -52,6 +53,18 @@ describe("custom puzzles", () => {
       "WORDPLAY",
     ]);
     expect(decoded?.groups[0]?.words).toEqual(["Ascent", "Bind", "Lotus", "Pearl"]);
+  });
+
+  it("reorders draft groups by chosen difficulties", () => {
+    const draft = puzzleToDraft(puzzle);
+    const reordered = reorderDraftByDifficulties(draft.groups, [2, 4, 3, 1]);
+    expect(reordered?.map((group) => group.category)).toEqual([
+      "WORDPLAY",
+      "MAPS",
+      "CONTROLLERS",
+      "CHAMPIONS",
+    ]);
+    expect(reorderDraftByDifficulties(draft.groups, [1, 1, 2, 3])).toBeNull();
   });
 
   it("rejects duplicate words", () => {

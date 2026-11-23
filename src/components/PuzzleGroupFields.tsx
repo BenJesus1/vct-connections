@@ -17,7 +17,7 @@ export function PuzzleGroupFields({
         const tier = DIFFICULTY[(groupIndex + 1) as 1 | 2 | 3 | 4];
         return (
           <section
-            key={tier.name}
+            key={`${tier.name}-${groupIndex}`}
             className="rounded-sm bg-comms-tile p-3"
             style={{ boxShadow: `inset 4px 0 0 ${tier.color}` }}
           >

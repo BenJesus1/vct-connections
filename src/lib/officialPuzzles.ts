@@ -113,6 +113,22 @@ export function validateOfficialDraft(
   return errors;
 }
 
+/** Assign a new Iron–Radiant color to each group. `difficulties` is parallel to `groups`. */
+export function assignGroupDifficulties(
+  groups: Puzzle["groups"],
+  difficulties: Difficulty[],
+): Puzzle["groups"] | null {
+  if (groups.length !== 4 || difficulties.length !== 4) return null;
+  if (new Set(difficulties).size !== 4) return null;
+  if (![1, 2, 3, 4].every((tier) => difficulties.includes(tier as Difficulty))) {
+    return null;
+  }
+  return groups.map((group, index) => ({
+    ...group,
+    difficulty: difficulties[index]!,
+  })) as Puzzle["groups"];
+}
+
 export function draftToGroups(draft: OfficialDraft): Puzzle["groups"] {
   return draft.groups.map((group, index) => ({
     category: group.category.trim(),
@@ -210,6 +226,18 @@ export async function saveOfficialPuzzle(
   }
 
   const { error } = await client.from("official_puzzles").insert(payload);
+  return error?.message ?? null;
+}
+
+export async function updateOfficialGroups(
+  client: SupabaseClient,
+  rowId: number,
+  groups: Puzzle["groups"],
+): Promise<string | null> {
+  const { error } = await client
+    .from("official_puzzles")
+    .update({ groups, updated_at: new Date().toISOString() })
+    .eq("id", rowId);
   return error?.message ?? null;
 }
 

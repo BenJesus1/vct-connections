@@ -4,10 +4,16 @@ import { PuzzleGroupFields } from "../components/PuzzleGroupFields";
 import { RequireAccount, AccountGate } from "../components/AccountGate";
 import { usePuzzleCatalog } from "../components/PuzzleCatalog";
 import { formatDisplayDate, formatLocalDate } from "../game/daily";
-import { MAX_AUTHOR_LENGTH } from "../game/customPuzzle";
-import type { CustomPuzzleDraft } from "../game/customPuzzle";
+import { GroupDifficultyEditor } from "../components/GroupDifficultyEditor";
+import {
+  MAX_AUTHOR_LENGTH,
+  reorderDraftByDifficulties,
+  type CustomPuzzleDraft,
+} from "../game/customPuzzle";
+import type { Difficulty } from "../game/types";
 import {
   MAX_NOTES_LENGTH,
+  assignGroupDifficulties,
   claimEditorSeat,
   deleteOfficialPuzzle,
   emptyOfficialDraft,
@@ -16,6 +22,7 @@ import {
   nextPuzzleId,
   rowToDraft,
   saveOfficialPuzzle,
+  updateOfficialGroups,
   validateOfficialDraft,
   type OfficialDraft,
   type OfficialPuzzleRow,
@@ -147,6 +154,36 @@ function DeskInner() {
       return { ...prev, groups };
     });
     setFormErrors([]);
+  }
+
+  function applyDraftDifficulties(difficulties: Difficulty[]) {
+    setDraft((prev) => {
+      const groups = reorderDraftByDifficulties(prev.groups, difficulties);
+      return groups ? { ...prev, groups } : prev;
+    });
+    setFormErrors([]);
+  }
+
+  async function applyBacklogDifficulties(
+    row: OfficialPuzzleRow,
+    difficulties: Difficulty[],
+  ) {
+    if (!client) return;
+    const groups = assignGroupDifficulties(row.groups, difficulties);
+    if (!groups) {
+      setFormErrors(["Use each difficulty color once."]);
+      return;
+    }
+    const saveError = await updateOfficialGroups(client, row.id, groups);
+    if (saveError) {
+      setError(saveError);
+      return;
+    }
+    if (editingId === row.id) {
+      setDraft(rowToDraft({ ...row, groups }));
+    }
+    setStatus(`Updated difficulties on #${row.puzzle_id}`);
+    await reloadRows(client);
   }
 
   function updateWord(groupIndex: number, wordIndex: number, word: string) {
@@ -299,6 +336,18 @@ function DeskInner() {
           />
         </label>
 
+        <div className="mb-4">
+          <GroupDifficultyEditor
+            items={draft.groups.map((group, index) => ({
+              key: String(index),
+              label: group.category.trim() || `Group ${index + 1}`,
+              difficulty: (index + 1) as Difficulty,
+            }))}
+            applyLabel="Apply colors"
+            onApply={applyDraftDifficulties}
+          />
+        </div>
+
         <PuzzleGroupFields
           groups={draft.groups}
           onCategory={updateCategory}
@@ -335,11 +384,14 @@ function DeskInner() {
 
       <Queue
         title="Backlog"
-        hint="Unscheduled — not visible to players yet"
+        hint="Unscheduled — not visible to players yet. Set every group color, then save."
         rows={backlog}
         empty="Nothing in the backlog."
         onEdit={startEdit}
         onDelete={(row) => void remove(row)}
+        onDifficulty={(row, difficulties) =>
+          void applyBacklogDifficulties(row, difficulties)
+        }
       />
       <Queue
         title="Upcoming"
@@ -368,6 +420,7 @@ function Queue({
   empty,
   onEdit,
   onDelete,
+  onDifficulty,
 }: {
   title: string;
   hint: string;
@@ -375,6 +428,7 @@ function Queue({
   empty: string;
   onEdit: (row: OfficialPuzzleRow) => void;
   onDelete: (row: OfficialPuzzleRow) => void;
+  onDifficulty?: (row: OfficialPuzzleRow, difficulties: Difficulty[]) => void;
 }) {
   return (
     <section className="mb-8">
@@ -403,12 +457,14 @@ function Queue({
                       </span>
                     ) : null}
                   </p>
-                  <p className="truncate font-body text-xs text-comms-muted">
-                    {row.groups
-                      .map((group) => group.category)
-                      .filter(Boolean)
-                      .join(" · ") || "Untitled"}
-                  </p>
+                  {onDifficulty ? null : (
+                    <p className="truncate font-body text-xs text-comms-muted">
+                      {row.groups
+                        .map((group) => group.category)
+                        .filter(Boolean)
+                        .join(" · ") || "Untitled"}
+                    </p>
+                  )}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1">
                   <button
@@ -427,6 +483,18 @@ function Queue({
                   </button>
                 </div>
               </div>
+              {onDifficulty ? (
+                <div className="mt-3">
+                  <GroupDifficultyEditor
+                    items={row.groups.map((group, index) => ({
+                      key: `${row.id}-${index}`,
+                      label: group.category,
+                      difficulty: group.difficulty,
+                    }))}
+                    onApply={(difficulties) => onDifficulty(row, difficulties)}
+                  />
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>

@@ -5,6 +5,7 @@ import {
   mergeOfficialPuzzles,
   nextOpenDate,
   nextPuzzleId,
+  assignGroupDifficulties,
   validateOfficialDraft,
 } from "./officialPuzzles";
 
@@ -29,6 +30,15 @@ describe("official puzzle helpers", () => {
     expect(
       nextOpenDate(["2026-11-21", "2026-11-22"], new Date(2026, 10, 21)),
     ).toBe("2026-11-23");
+  });
+
+  it("assigns a full set of difficulties without pairwise swaps", () => {
+    const assigned = assignGroupDifficulties(groups, [2, 4, 3, 1]);
+    expect(assigned?.find((group) => group.category === "A")?.difficulty).toBe(2);
+    expect(assigned?.find((group) => group.category === "B")?.difficulty).toBe(4);
+    expect(assigned?.find((group) => group.category === "C")?.difficulty).toBe(3);
+    expect(assigned?.find((group) => group.category === "D")?.difficulty).toBe(1);
+    expect(assignGroupDifficulties(groups, [1, 1, 2, 3])).toBeNull();
   });
 
   it("increments puzzle ids and rejects taken dates", () => {
