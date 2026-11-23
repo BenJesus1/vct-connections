@@ -95,7 +95,7 @@ function SignedInLeaderboard() {
   return (
     <div className="mx-auto max-w-[390px]">
       <header className="mb-6 text-center">
-        <h1 className="font-display text-4xl tracking-wide text-comms-text">
+        <h1 className="font-display text-3xl tracking-wide text-comms-text sm:text-4xl">
           Ranks
         </h1>
         <p className="mt-2 font-body text-sm text-comms-muted">

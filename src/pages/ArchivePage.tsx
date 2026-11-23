@@ -79,7 +79,7 @@ function ArchiveList() {
   return (
     <div className="mx-auto max-w-[390px]">
       <header className="mb-6 text-center">
-        <h1 className="font-display text-4xl tracking-wide text-comms-text">
+        <h1 className="font-display text-3xl tracking-wide text-comms-text sm:text-4xl">
           Archive
         </h1>
         <p className="mt-2 font-body text-sm text-comms-muted">
@@ -165,7 +165,7 @@ function ArchiveDay({
   );
 
   const body = (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
       {title}
       <div className="shrink-0 text-right">{rank}</div>
     </div>

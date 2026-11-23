@@ -18,7 +18,7 @@ export function Toast({ message, durationMs = 1600, onClear }: ToastProps) {
   }, [message, durationMs, onClear]);
 
   return (
-    <div className="relative flex h-8 items-center justify-center" aria-live="polite">
+    <div className="relative flex min-h-8 items-center justify-center px-1" aria-live="polite">
       <AnimatePresence mode="wait">
         {message ? (
           <motion.p
@@ -27,7 +27,7 @@ export function Toast({ message, durationMs = 1600, onClear }: ToastProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
             transition={{ duration: reducedMotion ? 0.15 : 0.2 }}
-            className="absolute inset-x-0 text-center font-body text-sm font-semibold text-comms-text"
+            className="text-center font-body text-sm font-semibold leading-snug text-comms-text"
             role="status"
           >
             {message}

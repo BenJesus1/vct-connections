@@ -15,7 +15,7 @@ export function AccountGate({
 }) {
   return (
     <div className="mx-auto max-w-[390px] text-center">
-      <h1 className="font-display text-4xl tracking-wide text-comms-text">
+      <h1 className="font-display text-3xl tracking-wide text-comms-text sm:text-4xl">
         {title}
       </h1>
       <p className="mt-2 font-body text-sm text-comms-muted">{body}</p>
@@ -83,7 +83,7 @@ function RequireSignedIn({
         action={
           <Link
             to={`/sign-in?redirect=${redirect}`}
-            className="clip-angled mt-6 inline-block bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white"
+            className="clip-angled mt-6 inline-flex min-h-11 w-full items-center justify-center bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white"
           >
             Sign in
           </Link>

@@ -5,7 +5,7 @@ import { canOpenEditorUi } from "../auth/editor";
 
 const className = ({ isActive }: { isActive: boolean }) =>
   [
-    "inline-flex min-h-10 shrink-0 items-center justify-center whitespace-nowrap px-1 font-body text-[10px] font-semibold uppercase tracking-wide transition sm:min-h-8 sm:px-2 sm:text-xs sm:tracking-[0.16em]",
+    "inline-flex min-h-11 flex-1 items-center justify-center whitespace-nowrap px-2 font-body text-xs font-semibold uppercase tracking-wide transition sm:min-h-8 sm:flex-none sm:tracking-[0.16em]",
     isActive ? "text-comms-accent" : "text-comms-muted hover:text-comms-text",
   ].join(" ");
 

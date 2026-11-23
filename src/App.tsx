@@ -45,7 +45,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-comms-bg px-3 pb-10 pt-4 sm:px-4">
+    <div className="min-h-dvh overflow-x-hidden bg-comms-bg px-3 pb-[max(2.5rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-4">
       <UsernameGate>
       <SiteHeader onHowToPlay={() => setHowToOpen(true)} />
 

@@ -12,7 +12,7 @@ export function SignInContinuePage() {
       <p className="mb-4 text-center font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
         Account
       </p>
-      <h1 className="mb-6 text-center font-display text-4xl tracking-wide text-comms-text">
+      <h1 className="mb-6 text-center font-display text-3xl tracking-wide text-comms-text sm:text-4xl">
         Finish sign-in
       </h1>
       <SignUp

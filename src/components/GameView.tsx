@@ -241,11 +241,11 @@ function GameViewCore({
 
   return (
     <div>
-      <header className="mx-auto mb-6 max-w-[390px] text-center">
+      <header className="mx-auto mb-4 max-w-[min(100%,390px)] text-center sm:mb-6">
         <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
           {badge}
         </p>
-        <h1 className="font-display text-4xl tracking-wide text-comms-text sm:text-6xl">
+        <h1 className="font-display text-3xl tracking-wide text-comms-text sm:text-6xl">
           VCT COMMS
         </h1>
         {hidePuzzleNumber ? (
@@ -290,7 +290,7 @@ function GameViewCore({
         onToggle={handleToggle}
       />
 
-      <div className="mx-auto mt-5 flex max-w-[390px] flex-col gap-4">
+      <div className="mx-auto mt-4 flex max-w-[min(100%,390px)] flex-col gap-4 sm:mt-5">
         <Toast
           message={toast}
           durationMs={playing ? 1600 : null}

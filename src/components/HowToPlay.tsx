@@ -1,4 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { COMMS_RANK, COMMS_PUBLIC_RANK_ORDER, DIFFICULTY } from "../theme";
 
 export const HOW_TO_PLAY_KEY = "comms:howto:seen";
@@ -16,7 +17,7 @@ const TIERS = [
 ];
 
 const RANK_HINTS: Record<(typeof COMMS_PUBLIC_RANK_ORDER)[number], string> = {
-  Immortal: "No mistakes — all correct",
+  Immortal: "No mistakes",
   Diamond: "1 mistake",
   Plat: "2 mistakes",
   Silver: "3 mistakes",
@@ -25,40 +26,54 @@ const RANK_HINTS: Record<(typeof COMMS_PUBLIC_RANK_ORDER)[number], string> = {
 
 export function HowToPlay({ open, onClose }: HowToPlayProps) {
   const reducedMotion = useReducedMotion();
+  const [backdropArmed, setBackdropArmed] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setBackdropArmed(false);
+      return;
+    }
+    const id = window.setTimeout(() => setBackdropArmed(true), 350);
+    return () => window.clearTimeout(id);
+  }, [open]);
 
   return (
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+          className={[
+            "fixed inset-0 z-[70] flex items-end justify-center bg-black/70 sm:items-center sm:p-4",
+            backdropArmed ? "" : "pointer-events-none",
+          ].join(" ")}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reducedMotion ? 0.15 : 0.2 }}
-          onClick={onClose}
+          onClick={backdropArmed ? onClose : undefined}
         >
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="howto-title"
-            className="max-h-[90vh] w-full max-w-[390px] overflow-y-auto border border-comms-text/15 bg-comms-bg p-5 shadow-2xl"
+            className="flex max-h-[min(92dvh,100%)] w-full max-w-[390px] flex-col border border-comms-text/15 bg-comms-bg p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
             transition={{ duration: reducedMotion ? 0.15 : 0.25 }}
             onClick={(e) => e.stopPropagation()}
           >
+            <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="flex items-start justify-between gap-3">
               <h2
                 id="howto-title"
-                className="font-display text-3xl tracking-wide text-comms-text"
+                className="font-display text-2xl tracking-wide text-comms-text sm:text-3xl"
               >
                 How to Play
               </h2>
               <button
                 type="button"
                 onClick={onClose}
-                className="font-body text-sm text-comms-muted hover:text-comms-text"
+                className="inline-flex min-h-11 shrink-0 items-center px-2 font-body text-sm text-comms-muted hover:text-comms-text"
                 aria-label="Close"
               >
                 Close
@@ -125,11 +140,12 @@ export function HowToPlay({ open, onClose }: HowToPlayProps) {
                 );
               })}
             </ul>
+            </div>
 
             <button
               type="button"
               onClick={onClose}
-              className="clip-angled mt-6 w-full bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
+              className="clip-angled mt-4 w-full shrink-0 bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white transition hover:brightness-110"
             >
               Play
             </button>

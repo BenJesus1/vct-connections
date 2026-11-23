@@ -93,7 +93,7 @@ function GoogleSignIn() {
       <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
         Account
       </p>
-      <h1 className="mt-1 font-display text-4xl tracking-wide text-comms-text">
+      <h1 className="mt-1 font-display text-3xl tracking-wide text-comms-text sm:text-4xl">
         Sign in
       </h1>
       <p className="mt-2 font-body text-sm text-comms-muted">
@@ -106,7 +106,7 @@ function GoogleSignIn() {
         type="button"
         onClick={() => void handleGoogle()}
         disabled={busy}
-        className="clip-angled mt-8 flex w-full items-center justify-center gap-3 bg-comms-tile px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:brightness-110 disabled:opacity-60"
+        className="clip-angled mt-8 flex min-h-11 w-full items-center justify-center gap-3 bg-comms-tile px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-comms-text transition hover:brightness-110 disabled:opacity-60"
       >
         <GoogleMark />
         {busy ? "Connecting…" : "Continue with Google"}
@@ -121,7 +121,7 @@ function GoogleSignIn() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="mt-6 font-body text-xs font-semibold uppercase tracking-wide text-comms-muted hover:text-comms-text"
+        className="mt-6 inline-flex min-h-11 items-center font-body text-xs font-semibold uppercase tracking-wide text-comms-muted hover:text-comms-text"
       >
         Back
       </button>

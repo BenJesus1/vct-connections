@@ -19,7 +19,12 @@ function fitText(el: HTMLElement) {
   let size = MAX_FONT_PX;
   el.style.fontSize = `${size}px`;
 
-  while (size > MIN_FONT_PX && el.scrollWidth > parent.clientWidth - 8) {
+  const maxWidth = parent.clientWidth - 8;
+  const maxHeight = parent.clientHeight - 8;
+  while (
+    size > MIN_FONT_PX &&
+    (el.scrollWidth > maxWidth || el.scrollHeight > maxHeight)
+  ) {
     size -= 0.5;
     el.style.fontSize = `${size}px`;
   }
@@ -56,7 +61,7 @@ export function Tile({
       disabled={disabled}
       onClick={() => onToggle(word)}
       className={[
-        "tile-face flex h-[68px] w-full items-center justify-center rounded-sm px-1.5",
+        "tile-face flex h-[72px] w-full items-center justify-center rounded-sm px-1 sm:h-[68px] sm:px-1.5",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-comms-accent",
         "disabled:cursor-default",
         selected

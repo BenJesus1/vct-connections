@@ -36,7 +36,7 @@ export function Board({
     status === "lost" ? unsolvedGroups(state).slice(0, revealedLossCount) : [];
 
   return (
-    <div className="relative mx-auto flex w-full max-w-[390px] flex-col gap-2">
+    <div className="relative mx-auto flex w-full max-w-[min(100%,390px)] flex-col gap-1.5 sm:gap-2">
       {solvedGroups.map((group) => (
         <SolvedRow key={`solved-${group.category}`} group={group} />
       ))}
@@ -46,7 +46,7 @@ export function Board({
           <SolvedRow key={`reveal-${group.category}`} group={group} />
         ))
       ) : board.length > 0 ? (
-        <div className="grid grid-cols-4 gap-2" role="group" aria-label="Puzzle tiles">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-2" role="group" aria-label="Puzzle tiles">
           {board.map((word) => (
             <Tile
               key={word}

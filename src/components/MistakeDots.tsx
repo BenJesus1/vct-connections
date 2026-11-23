@@ -9,7 +9,7 @@ export function MistakeDots({ mistakes }: MistakeDotsProps) {
 
   return (
     <div
-      className="flex items-center justify-center gap-3"
+      className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
       aria-label={`${remaining} mistake${remaining === 1 ? "" : "s"} remaining`}
     >
       <span className="font-body text-sm text-comms-muted">Mistakes remaining:</span>

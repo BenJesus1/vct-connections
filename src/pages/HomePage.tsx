@@ -19,7 +19,7 @@ export function HomePage() {
         <p className="font-body text-xs font-semibold uppercase tracking-[0.2em] text-comms-accent">
           Daily
         </p>
-        <h1 className="mt-1 font-display text-4xl tracking-wide text-comms-text">
+        <h1 className="mt-1 font-display text-3xl tracking-wide text-comms-text sm:text-4xl">
           No VCT COMMS today
         </h1>
         <p className="mt-2 font-body text-sm text-comms-muted">

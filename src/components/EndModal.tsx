@@ -48,6 +48,7 @@ export function EndModal({
   );
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [backdropArmed, setBackdropArmed] = useState(false);
 
   const shareText = useMemo(
     () =>
@@ -72,7 +73,11 @@ export function EndModal({
     if (!open) {
       setCopied(false);
       setCopiedLink(false);
+      setBackdropArmed(false);
+      return;
     }
+    const id = window.setTimeout(() => setBackdropArmed(true), 350);
+    return () => window.clearTimeout(id);
   }, [open]);
 
   async function handleShare() {
@@ -111,18 +116,21 @@ export function EndModal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+          className={[
+            "fixed inset-0 z-[70] flex items-end justify-center bg-black/70 sm:items-center sm:p-4",
+            backdropArmed ? "" : "pointer-events-none",
+          ].join(" ")}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reducedMotion ? 0.15 : 0.2 }}
-          onClick={onClose}
+          onClick={backdropArmed ? onClose : undefined}
         >
           <motion.div
             role="dialog"
             aria-modal="true"
             aria-labelledby="end-modal-title"
-            className="w-full max-w-[390px] border border-comms-text/15 bg-comms-bg p-5 shadow-2xl"
+            className="max-h-[min(90dvh,100%)] w-full max-w-[390px] overflow-y-auto border border-comms-text/15 bg-comms-bg p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
             initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 16 }}
@@ -136,7 +144,7 @@ export function EndModal({
                 </p>
                 <h2
                   id="end-modal-title"
-                  className="mt-1 font-display text-3xl tracking-wide text-comms-text"
+                  className="mt-1 font-display text-2xl tracking-wide text-comms-text sm:text-3xl"
                 >
                   {title}
                 </h2>
@@ -150,7 +158,7 @@ export function EndModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="font-body text-sm text-comms-muted hover:text-comms-text"
+                className="inline-flex min-h-11 shrink-0 items-center px-2 font-body text-sm text-comms-muted hover:text-comms-text"
                 aria-label="Close"
               >
                 Close
@@ -159,7 +167,7 @@ export function EndModal({
 
             {showCareerStats ? (
               <>
-                <div className="mt-5 grid grid-cols-4 gap-2 text-center">
+                <div className="mt-5 grid grid-cols-4 gap-1 text-center sm:gap-2">
                   <Stat label="Played" value={String(stats.played)} />
                   <Stat label="Win %" value={String(winRate)} />
                   <Stat label="Streak" value={String(stats.currentStreak)} />
@@ -291,7 +299,7 @@ function RankBars({
                 }}
               />
             </div>
-            <span className="font-body text-[9px] leading-tight text-comms-muted">
+            <span className="w-full truncate text-center font-body text-[9px] leading-tight text-comms-muted">
               {style.name}
             </span>
           </div>
