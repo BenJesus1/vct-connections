@@ -14,6 +14,14 @@ export function SiteFooter() {
           @{CREATOR_X_HANDLE}
         </span>
       </a>
+      <p className="mt-3">
+        <a
+          href="/privacy"
+          className="font-body text-[11px] font-semibold uppercase tracking-wide text-comms-muted hover:text-comms-text hover:underline"
+        >
+          Privacy
+        </a>
+      </p>
       <p className="mt-1 font-body text-[11px] leading-relaxed text-comms-muted">
         VCT COMMS is an unofficial fan project and is not endorsed by Riot Games.
         Valorant and related marks are trademarks of Riot Games, Inc. This

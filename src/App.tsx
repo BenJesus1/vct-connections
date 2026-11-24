@@ -21,6 +21,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { PuzzleCatalogProvider } from "./components/PuzzleCatalog";
 import { UsernameGate } from "./components/UsernameGate";
 import { DeskPage } from "./pages/DeskPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
 
 export function App() {
   const location = useLocation();
@@ -63,6 +64,7 @@ export function App() {
         <Route path="/sign-in/continue" element={<SignInContinuePage />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sso-callback/*" element={<SsoCallbackPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </ErrorBoundary>
