@@ -174,6 +174,14 @@ export function getPuzzleProgress(
   return isPuzzleProgress(progress) ? progress : undefined;
 }
 
+export function hasFinishedPuzzle(
+  puzzleId: number,
+  saved: SavedState = loadSavedState(),
+): boolean {
+  const progress = getPuzzleProgress(saved, puzzleId);
+  return progress?.status === "won" || progress?.status === "lost";
+}
+
 /** Drop one puzzle's board so it can be played again. Career stats stay. */
 export function clearPuzzleProgress(puzzleId: number): SavedState {
   const saved = loadSavedState();

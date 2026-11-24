@@ -4,7 +4,13 @@ import { useAuth, useSession } from "@clerk/react";
 import { AccountGate, RequireAccount } from "../components/AccountGate";
 import { usePlayableArchive } from "../components/PuzzleCatalog";
 import { canOpenEditorUi } from "../auth/editor";
-import { formatDisplayDate, formatLocalDate } from "../game/daily";
+import {
+  canOpenArchivePlay,
+  formatDisplayDate,
+  formatLocalDate,
+  formatShiftedLocalDate,
+} from "../game/daily";
+import { hasFinishedPuzzle, loadSavedState } from "../game/storage";
 import { RankLabel } from "../components/RankLabel";
 import { commsRankFromResult } from "../game/ranks";
 import {
@@ -30,6 +36,8 @@ export function ArchivePage() {
 function ArchiveList() {
   const archive = usePlayableArchive();
   const todayKey = formatLocalDate();
+  const yesterdayKey = formatShiftedLocalDate(-1);
+  const saved = loadSavedState();
   const { isSignedIn, userId } = useAuth();
   const { session } = useSession();
   const isEditor = canOpenEditorUi(userId);
@@ -86,7 +94,7 @@ function ArchiveList() {
           The rank you earned each day since launch.
           {isEditor
             ? " As editor you can open any day and play it again."
-            : " Past puzzles cannot be replayed."}
+            : " Yesterday is open if you missed it. Older puzzles stay closed."}
         </p>
       </header>
 
@@ -117,7 +125,15 @@ function ArchiveList() {
                 key={day.puzzle.id}
                 day={day}
                 isToday={day.puzzle.date === todayKey}
-                canReplay={isEditor || day.puzzle.date === todayKey}
+                isYesterday={day.puzzle.date === yesterdayKey}
+                canReplay={canOpenArchivePlay({
+                  puzzleDate: day.puzzle.date,
+                  todayKey,
+                  yesterdayKey,
+                  alreadyPlayed:
+                    Boolean(day.mine) || hasFinishedPuzzle(day.puzzle.id, saved),
+                  isEditor,
+                })}
               />
             ))}
           </ul>
@@ -130,10 +146,12 @@ function ArchiveList() {
 function ArchiveDay({
   day,
   isToday,
+  isYesterday,
   canReplay,
 }: {
   day: ArchiveDayView;
   isToday: boolean;
+  isYesterday: boolean;
   canReplay: boolean;
 }) {
   const title = (
@@ -143,6 +161,10 @@ function ArchiveDay({
         {isToday ? (
           <span className="ml-2 font-body text-xs font-semibold uppercase tracking-wide text-comms-accent">
             Today
+          </span>
+        ) : isYesterday ? (
+          <span className="ml-2 font-body text-xs font-semibold uppercase tracking-wide text-comms-accent">
+            Yesterday
           </span>
         ) : null}
       </p>

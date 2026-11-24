@@ -21,8 +21,8 @@ import { canOpenEditorUi } from "../auth/editor";
 import { DailyResultSync } from "./DailyResultSync";
 import { isSupabaseConfigured } from "../lib/supabase";
 
-const SHAKE_MS = 380;
-const COLLAPSE_LOCK_MS = 320;
+const SHAKE_MS = 560;
+const COLLAPSE_LOCK_MS = 480;
 const LOSS_STAGGER_MS = 600;
 
 interface GameViewProps {
@@ -168,7 +168,7 @@ function GameViewCore({
 
   useEffect(() => {
     if (state.status === "won") {
-      setToast("Perfect VCT COMMS. You found every group.");
+      setToast("Perfect COMMS. You found every group.");
     } else if (state.status === "lost") {
       setToast("Out of mistakes. Revealing categories…");
     }

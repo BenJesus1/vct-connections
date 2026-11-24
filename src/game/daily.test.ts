@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  canOpenArchivePlay,
   formatCountdown,
   formatDisplayDate,
   formatLocalDate,
+  formatShiftedLocalDate,
   getDailyPuzzle,
   getTodayPuzzle,
+  isYesterday,
   msUntilNextLocalMidnight,
 } from "./daily";
 import type { Puzzle } from "./types";
@@ -61,5 +64,69 @@ describe("countdown helpers", () => {
       60_000 + 50,
     );
     expect(msUntilNextLocalMidnight(new Date(2026, 10, 20, 23, 59, 0))).toBeGreaterThan(0);
+  });
+});
+
+describe("archive catch-up", () => {
+  const today = new Date(2026, 10, 22);
+  const todayKey = formatLocalDate(today);
+  const yesterdayKey = formatShiftedLocalDate(-1, today);
+
+  it("treats the previous local calendar day as yesterday", () => {
+    expect(yesterdayKey).toBe("2026-11-21");
+    expect(isYesterday("2026-11-21", today)).toBe(true);
+    expect(isYesterday("2026-11-22", today)).toBe(false);
+    expect(isYesterday("2026-11-20", today)).toBe(false);
+  });
+
+  it("lets you play yesterday only if you have not finished it", () => {
+    expect(
+      canOpenArchivePlay({
+        puzzleDate: yesterdayKey,
+        todayKey,
+        yesterdayKey,
+        alreadyPlayed: false,
+        isEditor: false,
+      }),
+    ).toBe(true);
+    expect(
+      canOpenArchivePlay({
+        puzzleDate: yesterdayKey,
+        todayKey,
+        yesterdayKey,
+        alreadyPlayed: true,
+        isEditor: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("keeps older days locked and today open", () => {
+    expect(
+      canOpenArchivePlay({
+        puzzleDate: todayKey,
+        todayKey,
+        yesterdayKey,
+        alreadyPlayed: true,
+        isEditor: false,
+      }),
+    ).toBe(true);
+    expect(
+      canOpenArchivePlay({
+        puzzleDate: "2026-11-20",
+        todayKey,
+        yesterdayKey,
+        alreadyPlayed: false,
+        isEditor: false,
+      }),
+    ).toBe(false);
+    expect(
+      canOpenArchivePlay({
+        puzzleDate: "2026-11-20",
+        todayKey,
+        yesterdayKey,
+        alreadyPlayed: true,
+        isEditor: true,
+      }),
+    ).toBe(true);
   });
 });

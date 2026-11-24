@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SITE_URL } from "../theme";
 import { buildShareText } from "./share";
 import type { Puzzle } from "./types";
 
@@ -47,7 +48,18 @@ describe("buildShareText", () => {
         "🟦🟦🟦🟦",
         "🟩🟩🟩🟩",
         "🟪🟪🟪🟪",
+        "",
+        SITE_URL,
       ].join("\n"),
     );
+  });
+
+  it("can pin a specific site URL in the share text", () => {
+    const text = buildShareText(
+      puzzle,
+      [["Ascent", "Bind", "Lotus", "Pearl"]],
+      { siteUrl: "https://example.com" },
+    );
+    expect(text.endsWith("\n\nhttps://example.com")).toBe(true);
   });
 });

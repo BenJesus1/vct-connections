@@ -1,11 +1,22 @@
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { RequireEditor } from "../components/AccountGate";
+import { useAuth, useSession } from "@clerk/react";
+import { AccountGate, RequireEditor } from "../components/AccountGate";
 import { GameView } from "../components/GameView";
 import { usePuzzleCatalog } from "../components/PuzzleCatalog";
-import { formatDisplayDate, formatLocalDate } from "../game/daily";
+import { isClerkConfigured } from "../auth/clerk";
+import { canOpenEditorUi } from "../auth/editor";
+import { formatDisplayDate, formatLocalDate, isYesterday } from "../game/daily";
+import { hasFinishedPuzzle } from "../game/storage";
+import { fetchMyDailyRanks } from "../lib/leaderboard";
+import { createClerkSupabaseClient, isSupabaseConfigured } from "../lib/supabase";
+import type { Puzzle } from "../game/types";
 
 const ARCHIVE_LOCK =
   "Past VCT COMMS close after the day ends. Today's puzzle stays on the home tab.";
+
+const YESTERDAY_DONE =
+  "You already finished yesterday's VCT COMMS. Today's puzzle is on the home tab.";
 
 export function PuzzlePage() {
   const { id } = useParams();
@@ -67,6 +78,10 @@ export function PuzzlePage() {
   );
 
   if (puzzle.date === todayKey) return game;
+  if (isYesterday(puzzle.date)) {
+    if (!isClerkConfigured()) return game;
+    return <YesterdayPuzzle puzzle={puzzle}>{game}</YesterdayPuzzle>;
+  }
 
   return (
     <RequireEditor
@@ -84,4 +99,69 @@ export function PuzzlePage() {
       {game}
     </RequireEditor>
   );
+}
+
+function YesterdayPuzzle({
+  puzzle,
+  children,
+}: {
+  puzzle: Puzzle;
+  children: ReactNode;
+}) {
+  const { isLoaded, isSignedIn, userId } = useAuth();
+  const { session } = useSession();
+  const isEditor = canOpenEditorUi(userId);
+  const localDone = hasFinishedPuzzle(puzzle.id);
+  const [cloudDone, setCloudDone] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  const client = useMemo(() => {
+    if (!isSupabaseConfigured() || !session) return null;
+    return createClerkSupabaseClient(() => session.getToken());
+  }, [session]);
+
+  useEffect(() => {
+    if (isEditor || localDone || !isSignedIn || !client) {
+      setChecking(false);
+      return;
+    }
+
+    let active = true;
+    setChecking(true);
+    void fetchMyDailyRanks(client).then((result) => {
+      if (!active) return;
+      setCloudDone(result.rows.some((row) => row.puzzle_id === puzzle.id));
+      setChecking(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [client, isEditor, isSignedIn, localDone, puzzle.id]);
+
+  if (!isLoaded || checking) {
+    return (
+      <p className="mx-auto max-w-[390px] text-center font-body text-sm text-comms-muted">
+        Loading VCT COMMS…
+      </p>
+    );
+  }
+
+  if (!isEditor && !localDone && cloudDone) {
+    return (
+      <AccountGate
+        title="Already played"
+        body={YESTERDAY_DONE}
+        action={
+          <Link
+            to="/"
+            className="clip-angled mt-6 inline-block bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white"
+          >
+            Play today
+          </Link>
+        }
+      />
+    );
+  }
+
+  return children;
 }

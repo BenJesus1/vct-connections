@@ -1,6 +1,11 @@
-import { DIFFICULTY } from "../theme";
+import { DIFFICULTY, SITE_URL } from "../theme";
 import { formatDisplayDate } from "./daily";
 import type { Difficulty, Puzzle } from "./types";
+
+/** Public URL to include in share text so new players can find the game. */
+export function publicSiteUrl(): string {
+  return SITE_URL;
+}
 
 function wordDifficulty(puzzle: Puzzle, word: string): Difficulty {
   for (const group of puzzle.groups) {
@@ -16,13 +21,14 @@ function wordDifficulty(puzzle: Puzzle, word: string): Difficulty {
 export function buildShareText(
   puzzle: Puzzle,
   guesses: string[][],
-  options?: { title?: string },
+  options?: { title?: string; siteUrl?: string },
 ): string {
   const title = options?.title ?? `VCT COMMS ${formatDisplayDate(puzzle.date)}`;
+  const siteUrl = options?.siteUrl ?? publicSiteUrl();
   const rows = guesses.map((guess) =>
     guess.map((word) => DIFFICULTY[wordDifficulty(puzzle, word)].emoji).join(""),
   );
-  return [title, ...rows].join("\n");
+  return [title, ...rows, "", siteUrl].join("\n");
 }
 
 export async function copyShareText(text: string): Promise<boolean> {

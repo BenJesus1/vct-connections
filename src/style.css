@@ -40,6 +40,10 @@ body {
   );
 }
 
+.tile-face {
+  backface-visibility: hidden;
+}
+
 .tile-label {
   display: -webkit-box;
   width: 100%;
@@ -57,19 +61,20 @@ body {
 
 .tile-selected {
   transform: scale(0.97);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tile-shaking {
   transform: scale(0.97);
-  animation: tile-shake 0.35s ease-in-out;
+  animation: tile-shake 0.52s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
 .tile-celebrating {
-  animation: tile-pop 0.28s ease;
+  animation: tile-pop 0.46s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tile-solved {
-  animation: tile-solved-in 0.28s ease;
+  animation: tile-solved-in 0.42s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes tile-shake {
@@ -77,17 +82,20 @@ body {
   100% {
     transform: scale(0.97) translateX(0);
   }
-  20% {
-    transform: scale(0.97) translateX(-7px);
-  }
-  40% {
-    transform: scale(0.97) translateX(7px);
-  }
-  60% {
+  18% {
     transform: scale(0.97) translateX(-4px);
   }
-  80% {
+  36% {
     transform: scale(0.97) translateX(4px);
+  }
+  54% {
+    transform: scale(0.97) translateX(-2.5px);
+  }
+  72% {
+    transform: scale(0.97) translateX(1.5px);
+  }
+  88% {
+    transform: scale(0.97) translateX(-0.6px);
   }
 }
 
@@ -95,18 +103,18 @@ body {
   0% {
     transform: scale(0.97);
   }
-  45% {
-    transform: scale(1.06);
+  42% {
+    transform: scale(1.045);
   }
   100% {
-    transform: scale(0.97);
+    transform: scale(1);
   }
 }
 
 @keyframes tile-solved-in {
   from {
-    opacity: 0.4;
-    transform: scaleY(0.92);
+    opacity: 0.35;
+    transform: scaleY(0.94);
   }
   to {
     opacity: 1;

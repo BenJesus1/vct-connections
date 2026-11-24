@@ -1,6 +1,8 @@
 import type { Difficulty } from "./game/types";
 
-export const CREATOR_DISCORD = "kobep17";
+export const CREATOR_X_HANDLE = "KobeP17swe";
+export const CREATOR_X_URL = "https://x.com/KobeP17swe";
+export const SITE_URL = "https://vctcomms.com";
 
 export const COLORS = {
   bg: "#0F1923",

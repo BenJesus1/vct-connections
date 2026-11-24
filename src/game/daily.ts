@@ -1,5 +1,32 @@
 import type { Puzzle } from "./types";
 
+/** Local calendar date shifted by a number of days, as YYYY-MM-DD. */
+export function formatShiftedLocalDate(
+  days: number,
+  from: Date = new Date(),
+): string {
+  const date = new Date(from);
+  date.setDate(date.getDate() + days);
+  return formatLocalDate(date);
+}
+
+export function isYesterday(iso: string, today: Date = new Date()): boolean {
+  return iso === formatShiftedLocalDate(-1, today);
+}
+
+export function canOpenArchivePlay(options: {
+  puzzleDate: string;
+  todayKey: string;
+  yesterdayKey: string;
+  alreadyPlayed: boolean;
+  isEditor: boolean;
+}): boolean {
+  if (options.isEditor) return true;
+  if (options.puzzleDate === options.todayKey) return true;
+  if (options.puzzleDate === options.yesterdayKey) return !options.alreadyPlayed;
+  return false;
+}
+
 /** Local calendar date as YYYY-MM-DD. */
 export function formatLocalDate(date: Date = new Date()): string {
   const y = date.getFullYear();
