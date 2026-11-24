@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { SignOutButton, useAuth, useSession, useUser } from "@clerk/react";
 import { RequireAccount } from "../components/AccountGate";
 import { canOpenEditorUi } from "../auth/editor";
 import { RankLabel } from "../components/RankLabel";
 import {
+  claimUsername,
   displayNameFromUser,
   fetchLeaderboard,
   fetchMyDailyRanks,
   MIN_RANK_BOARD_PLAYS,
   playerStanding,
+  validateUsername,
 } from "../lib/leaderboard";
 import { useProfileName } from "../components/UsernameGate";
 import { createClerkSupabaseClient, isSupabaseConfigured } from "../lib/supabase";
@@ -90,6 +92,10 @@ function SignedInAccount() {
         </p>
       </header>
 
+      {isSignedIn && userId && isSupabaseConfigured() ? (
+        <UsernameEditor current={profileName ?? name} userId={userId} />
+      ) : null}
+
       <section className="mb-8">
         <h2 className="font-display text-2xl tracking-wide text-comms-text">
           Your ranks
@@ -166,6 +172,102 @@ function SignedInAccount() {
         </button>
       </SignOutButton>
     </div>
+  );
+}
+
+function UsernameEditor({
+  current,
+  userId,
+}: {
+  current: string;
+  userId: string;
+}) {
+  const { session } = useSession();
+  const [value, setValue] = useState(current);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setValue(current);
+  }, [current]);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    const next = value.trim();
+    if (next === current.trim()) {
+      setError(null);
+      setSaved(false);
+      return;
+    }
+    const invalid = validateUsername(next);
+    if (invalid) {
+      setError(invalid);
+      setSaved(false);
+      return;
+    }
+    if (!session) {
+      setError("Sign in again to change your username.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    const client = createClerkSupabaseClient(() => session.getToken());
+    const message = client
+      ? await claimUsername(client, userId, next)
+      : "Supabase is not configured.";
+    setSaving(false);
+    if (message) {
+      setError(message);
+      return;
+    }
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 1600);
+  }
+
+  return (
+    <section className="mb-8">
+      <h2 className="font-display text-2xl tracking-wide text-comms-text">
+        Username
+      </h2>
+      <p className="mb-3 font-body text-xs text-comms-muted">
+        Shown on ranks. Change it only if nobody else has that name.
+      </p>
+      <form onSubmit={(event) => void handleSubmit(event)}>
+        <label className="sr-only" htmlFor="account-username">
+          Username
+        </label>
+        <input
+          id="account-username"
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value);
+            setSaved(false);
+          }}
+          autoComplete="username"
+          maxLength={24}
+          className="w-full border border-comms-text/20 bg-comms-tile px-4 py-3 font-body text-sm text-comms-text outline-none placeholder:text-comms-muted focus:border-comms-accent"
+        />
+        <p className="mt-2 font-body text-[11px] text-comms-muted">
+          3–24 characters. Letters, numbers, and underscores.
+        </p>
+        {error ? (
+          <p className="mt-3 font-body text-xs text-comms-accent" role="alert">
+            {error}
+          </p>
+        ) : saved ? (
+          <p className="mt-3 font-body text-xs text-comms-gold">Saved.</p>
+        ) : null}
+        <button
+          type="submit"
+          disabled={saving}
+          className="clip-angled mt-4 w-full bg-comms-accent px-5 py-3 font-body text-sm font-semibold uppercase tracking-wide text-white transition hover:brightness-110 disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Save username"}
+        </button>
+      </form>
+    </section>
   );
 }
 

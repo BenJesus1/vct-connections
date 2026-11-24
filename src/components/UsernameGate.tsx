@@ -13,6 +13,7 @@ import { isClerkConfigured } from "../auth/clerk";
 import {
   claimUsername,
   fetchOwnProfile,
+  subscribeProfileSync,
   suggestedUsername,
   validateUsername,
 } from "../lib/leaderboard";
@@ -81,6 +82,17 @@ function UsernameGateInner({ children }: { children: ReactNode }) {
       active = false;
     };
   }, [client, isLoaded, isSignedIn, userId]);
+
+  useEffect(() => {
+    if (!isSignedIn || !client || !userId) return;
+    return subscribeProfileSync(() => {
+      void fetchOwnProfile(client, userId).then((result) => {
+        if (result.profile?.username_set) {
+          setDisplayName(result.profile.display_name);
+        }
+      });
+    });
+  }, [client, isSignedIn, userId]);
 
   if (isAuthRoute) {
     return (
@@ -176,8 +188,8 @@ function UsernameSetup({
         Choose a username
       </h1>
       <p className="mt-2 font-body text-sm text-comms-muted">
-        This is the name that shows on the ranks board. You pick it once when
-        you create your account.
+        This is the name that shows on the ranks board. You can change it later
+        on Account if nobody else is using the new name.
       </p>
 
       <form onSubmit={(event) => void handleSubmit(event)} className="mt-8">
